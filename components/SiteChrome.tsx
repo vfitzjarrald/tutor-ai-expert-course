@@ -9,10 +9,14 @@ const links = [
   { href: "/", label: "Today" },
   { href: "/calendar", label: "Calendar" },
   { href: "/schedule", label: "Schedule" },
+  { href: "/checks", label: "Checks" },
+  { href: "/resources", label: "Resources" },
+  { href: "/gates", label: "Gates" },
 ];
 
 export function SiteHeader({ user }: { user: SessionUser | null }) {
   const pathname = usePathname();
+  const phaseActive = pathname.startsWith("/phases");
 
   return (
     <header className="fixed left-0 right-0 top-0 z-40 border-b border-border bg-white">
@@ -24,16 +28,27 @@ export function SiteHeader({ user }: { user: SessionUser | null }) {
           <p className="truncate text-xs text-text-muted">Tutor AI Expert Course</p>
         </div>
         {user ? (
-          <nav className="flex flex-wrap items-center justify-end gap-3 sm:gap-4">
+          <nav className="flex max-w-[70%] flex-wrap items-center justify-end gap-x-3 gap-y-1 sm:gap-x-4">
             {links.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
-                className={pathname === link.href ? "nav-link nav-link-active" : "nav-link"}
+                className={
+                  link.href === "/"
+                    ? pathname === "/"
+                      ? "nav-link nav-link-active"
+                      : "nav-link"
+                    : pathname === link.href || pathname.startsWith(`${link.href}/`)
+                      ? "nav-link nav-link-active"
+                      : "nav-link"
+                }
               >
                 {link.label}
               </Link>
             ))}
+            <Link href="/phases/1" className={phaseActive ? "nav-link nav-link-active" : "nav-link"}>
+              Phases
+            </Link>
             {user.role === "admin" ? (
               <Link
                 href="/admin/users"
@@ -42,7 +57,7 @@ export function SiteHeader({ user }: { user: SessionUser | null }) {
                 Admin
               </Link>
             ) : null}
-            <span className="hidden text-xs text-text-muted md:inline">{user.displayName || user.username}</span>
+            <span className="hidden text-xs text-text-muted lg:inline">{user.displayName || user.username}</span>
             <form action={logoutAction}>
               <button type="submit" className="btn-secondary header-action-btn">
                 Log out

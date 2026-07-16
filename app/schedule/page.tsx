@@ -27,10 +27,25 @@ export default async function SchedulePage() {
           const weeks = outline.filter((w) => w.week >= phase.weekStart && w.week <= phase.weekEnd);
           return (
             <section key={phase.id} className="card">
-              <p className="page-hero-step">
-                Phase {phase.id} · Weeks {padWeek(phase.weekStart)}–{padWeek(phase.weekEnd)}
-              </p>
-              <h2 className="mb-4 text-xl text-heading">{phase.name}</h2>
+              <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <p className="page-hero-step">
+                    Phase {phase.id} · Weeks {padWeek(phase.weekStart)}–{padWeek(phase.weekEnd)}
+                  </p>
+                  <h2 className="text-xl text-heading">{phase.name}</h2>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Link href={`/phases/${phase.id}`} className="btn-secondary text-sm">
+                    Phase hub
+                  </Link>
+                  <Link href={`/resources?phase=${phase.id}`} className="btn-secondary text-sm">
+                    Resources
+                  </Link>
+                  <Link href="/gates" className="btn-secondary text-sm">
+                    Gates
+                  </Link>
+                </div>
+              </div>
               <ul className="divide-y divide-border">
                 {weeks.map((w) => {
                   const doneCount = [1, 2, 3, 4, 5].filter(

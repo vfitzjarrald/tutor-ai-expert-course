@@ -1,19 +1,29 @@
 import type { NextConfig } from "next";
 
-const curriculumFiles = ["./curriculum/**/*"];
+const traced = [
+  "./curriculum/**/*",
+  "./checkpoints/**/*",
+  "./labs/**/*",
+  "./capstone/README.md",
+];
+
+const routes = [
+  "/",
+  "/calendar",
+  "/schedule",
+  "/weeks/[week]",
+  "/weeks/[week]/days/[day]",
+  "/login",
+  "/admin/users",
+  "/checks",
+  "/gates",
+  "/resources",
+  "/phases/[id]",
+];
 
 const nextConfig: NextConfig = {
   serverExternalPackages: ["bcryptjs"],
-  // Curriculum is read via fs at runtime; include it in serverless traces
-  outputFileTracingIncludes: {
-    "/": curriculumFiles,
-    "/calendar": curriculumFiles,
-    "/schedule": curriculumFiles,
-    "/weeks/[week]": curriculumFiles,
-    "/weeks/[week]/days/[day]": curriculumFiles,
-    "/login": curriculumFiles,
-    "/admin/users": curriculumFiles,
-  },
+  outputFileTracingIncludes: Object.fromEntries(routes.map((route) => [route, traced])),
 };
 
 export default nextConfig;

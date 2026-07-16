@@ -1,10 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CompleteToggle, NoteEditor } from "@/components/CourseInteractive";
+import { PathHints } from "@/components/LearningInteractive";
 import { Markdown } from "@/components/Markdown";
 import { PageHero } from "@/components/SiteChrome";
 import { getSession } from "@/lib/auth";
+import { isGateWeek } from "@/lib/checks";
 import { loadDay, loadWeek } from "@/lib/curriculum";
+import { extractDeliverablePaths } from "@/lib/hub";
 import { getDayNote, getDayProgress } from "@/lib/progress";
 import { getPhaseForWeek, padWeek } from "@/lib/schedule";
 
@@ -32,6 +35,7 @@ export default async function DayPage({
   const phase = getPhaseForWeek(weekNum);
   const progress = await getDayProgress(session.id, weekNum, dayNum);
   const note = await getDayNote(session.id, weekNum, dayNum);
+  const paths = extractDeliverablePaths(day.rawMarkdown);
 
   return (
     <div>
@@ -46,6 +50,14 @@ export default async function DayPage({
         <Link href={`/weeks/${weekNum}`} className="btn-secondary">
           Week overview
         </Link>
+        <Link href={`/resources?phase=${phase.id}`} className="btn-secondary">
+          Resources
+        </Link>
+        {isGateWeek(weekNum) ? (
+          <Link href="/gates" className="btn-secondary">
+            Phase gate
+          </Link>
+        ) : null}
         {dayNum > 1 ? (
           <Link href={`/weeks/${weekNum}/days/${dayNum - 1}`} className="nav-link">
             ← Previous day
@@ -66,6 +78,7 @@ export default async function DayPage({
           <div className="card">
             <NoteEditor week={weekNum} day={dayNum} initialBody={note.body} />
           </div>
+          <PathHints paths={paths} noteBody={note.body} week={weekNum} day={dayNum} />
           {day.deliverable ? (
             <div className="card">
               <p className="text-xs font-semibold uppercase tracking-wide text-text-muted">Deliverable</p>

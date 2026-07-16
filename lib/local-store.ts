@@ -31,10 +31,29 @@ type NoteRow = {
   updated_at: string;
 };
 
+type QuizAttemptRow = {
+  id: string;
+  user_id: string;
+  scope: string;
+  score_pct: number;
+  answers: Record<string, string>;
+  created_at: string;
+};
+
+type GateItemRow = {
+  user_id: string;
+  phase: number;
+  item_key: string;
+  done: boolean;
+  updated_at: string;
+};
+
 type StoreData = {
   users: StoreUser[];
   progress: ProgressRow[];
   notes: NoteRow[];
+  quiz_attempts?: QuizAttemptRow[];
+  gate_items?: GateItemRow[];
 };
 
 function storePath() {
@@ -42,13 +61,16 @@ function storePath() {
 }
 
 function emptyStore(): StoreData {
-  return { users: [], progress: [], notes: [] };
+  return { users: [], progress: [], notes: [], quiz_attempts: [], gate_items: [] };
 }
 
 function readStore(): StoreData {
   const file = storePath();
   if (!existsSync(file)) return emptyStore();
-  return JSON.parse(readFileSync(file, "utf8")) as StoreData;
+  const data = JSON.parse(readFileSync(file, "utf8")) as StoreData;
+  if (!data.quiz_attempts) data.quiz_attempts = [];
+  if (!data.gate_items) data.gate_items = [];
+  return data;
 }
 
 function writeStore(data: StoreData) {
@@ -204,3 +226,69 @@ export async function localGetCompletionStats(userId: string) {
   const total = 78 * 5;
   return { completed, total, percent: Math.round((completed / total) * 1000) / 10 };
 }
+
+export async function localSaveQuizAttempt(
+  userId: string,
+  scope: string,
+  scorePct: number,
+  answers: Record<string, string>,
+) {
+  const data = readStore();
+  data.quiz_attempts = data.quiz_attempts ?? [];
+  data.quiz_attempts.push({
+    id: randomUUID(),
+    user_id: userId,
+    scope,
+    score_pct: scorePct,
+    answers,
+    created_at: new Date().toISOString(),
+  });
+  writeStore(data);
+}
+
+export async function localLatestQuizScore(userId: string, scope: string) {
+  const data = readStore();
+  const rows = (data.quiz_attempts ?? [])
+    .filter((a) => a.user_id === userId && a.scope === scope)
+    .sort((a, b) => b.created_at.localeCompare(a.created_at));
+  return rows[0] ? { scorePct: rows[0].score_pct, createdAt: rows[0].created_at } : null;
+}
+
+export async function localLatestQuizScores(userId: string) {
+  const data = readStore();
+  const map = new Map<string, { scorePct: number; createdAt: string }>();
+  for (const row of (data.quiz_attempts ?? [])
+    .filter((a) => a.user_id === userId)
+    .sort((a, b) => a.created_at.localeCompare(b.created_at))) {
+    map.set(row.scope, { scorePct: row.score_pct, createdAt: row.created_at });
+  }
+  return map;
+}
+
+export async function localGetGateStates(userId: string) {
+  const data = readStore();
+  const map = new Map<string, boolean>();
+  for (const row of data.gate_items ?? []) {
+    if (row.user_id === userId) map.set(`${row.phase}:${row.item_key}`, row.done);
+  }
+  return map;
+}
+
+export async function localSetGateItem(userId: string, phase: number, itemKey: string, done: boolean) {
+  const data = readStore();
+  data.gate_items = data.gate_items ?? [];
+  const idx = data.gate_items.findIndex(
+    (g) => g.user_id === userId && g.phase === phase && g.item_key === itemKey,
+  );
+  const row = {
+    user_id: userId,
+    phase,
+    item_key: itemKey,
+    done,
+    updated_at: new Date().toISOString(),
+  };
+  if (idx >= 0) data.gate_items[idx] = row;
+  else data.gate_items.push(row);
+  writeStore(data);
+}
+

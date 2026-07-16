@@ -142,3 +142,49 @@ export async function saveNoteAction(formData: FormData): Promise<ActionResult> 
     return { ok: false, error: "Could not save note." };
   }
 }
+
+export async function submitQuizAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult & { scorePct?: number; correct?: number; total?: number }> {
+  try {
+    const session = await requireSession();
+    const scopeRaw = String(formData.get("scope") ?? "all");
+    const scope = (scopeRaw === "all" || scopeRaw.startsWith("phase-") ? scopeRaw : "all") as import("@/lib/checks").QuizScope;
+    const { questionsForScope, scoreAnswers, thresholdForScope } = await import("@/lib/checks");
+    const { saveQuizAttempt } = await import("@/lib/learning");
+
+    const questions = questionsForScope(scope);
+    const answers: Record<string, string> = {};
+    for (const q of questions) {
+      const val = String(formData.get(`answer-${q.id}`) ?? "");
+      if (val) answers[q.id] = val;
+    }
+    const result = scoreAnswers(questions, answers);
+    await saveQuizAttempt(session.id, scope, result.scorePct, answers);
+    const threshold = thresholdForScope(scope);
+    const passed = result.scorePct >= threshold;
+    return {
+      ok: true,
+      message: passed
+        ? `Passed with ${result.scorePct}% (need ≥${threshold}%).`
+        : `Scored ${result.scorePct}% — need ≥${threshold}% to clear this gate.`,
+      scorePct: result.scorePct,
+      correct: result.correct,
+      total: result.total,
+    };
+  } catch (err) {
+    console.error(err);
+    return { ok: false, error: "Could not save quiz attempt." };
+  }
+}
+
+export async function toggleGateItemAction(formData: FormData): Promise<void> {
+  const session = await requireSession();
+  const phase = Number(formData.get("phase"));
+  const itemKey = String(formData.get("itemKey") ?? "");
+  const done = String(formData.get("done") ?? "") === "true";
+  if (!phase || !itemKey) return;
+  const { setGateItem } = await import("@/lib/learning");
+  await setGateItem(session.id, phase, itemKey, done);
+}
