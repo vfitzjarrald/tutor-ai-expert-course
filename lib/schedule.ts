@@ -1,4 +1,4 @@
-import { readFileSync } from "fs";
+import { existsSync, readFileSync } from "fs";
 import path from "path";
 
 export const TOTAL_WEEKS = 78;
@@ -34,6 +34,11 @@ export function getPhaseForWeek(week: number): PhaseInfo {
 
 export function readStartDate(repoRoot = process.cwd()): Date {
   const file = path.join(repoRoot, "curriculum", "start-date.txt");
+  if (!existsSync(file)) {
+    throw new Error(
+      `Missing curriculum/start-date.txt at ${file}. Ensure curriculum/ is included in the deployment bundle.`,
+    );
+  }
   const raw = readFileSync(file, "utf8").trim();
   const [y, m, d] = raw.split("-").map(Number);
   if (!y || !m || !d) {
