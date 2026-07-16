@@ -225,7 +225,12 @@ export async function localGetCompletionStats(userId: string) {
   const data = readStore();
   const completed = data.progress.filter((p) => p.user_id === userId && p.completed).length;
   const total = 78 * 5;
-  return { completed, total, percent: Math.round((completed / total) * 1000) / 10 };
+  return {
+    completed,
+    total,
+    remaining: Math.max(0, total - completed),
+    percent: Math.round((completed / total) * 1000) / 10,
+  };
 }
 
 export async function localSaveQuizAttempt(

@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useRef, useState, useTransition } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   createUserAction,
@@ -17,30 +18,56 @@ export function CompleteToggle({
   week,
   day,
   completed,
+  nextHref,
 }: {
   week: number;
   day: number;
   completed: boolean;
+  /** When marking complete, navigate here after save (next lesson or home). */
+  nextHref?: string | null;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const [justCompleted, setJustCompleted] = useState(false);
 
   return (
-    <form
-      action={(fd) => {
-        startTransition(async () => {
-          await toggleDayCompleteAction(fd);
-          router.refresh();
-        });
-      }}
-    >
-      <input type="hidden" name="week" value={week} />
-      <input type="hidden" name="day" value={day} />
-      <input type="hidden" name="completed" value={completed ? "false" : "true"} />
-      <button type="submit" className={completed ? "btn-secondary" : "btn-primary"} disabled={pending}>
-        {pending ? "Saving…" : completed ? "Mark incomplete" : "Mark complete"}
-      </button>
-    </form>
+    <div className="space-y-2">
+      <form
+        action={(fd) => {
+          startTransition(async () => {
+            const markingComplete = !completed;
+            await toggleDayCompleteAction(fd);
+            if (markingComplete) {
+              setJustCompleted(true);
+              if (nextHref) {
+                router.push(nextHref);
+                return;
+              }
+            } else {
+              setJustCompleted(false);
+            }
+            router.refresh();
+          });
+        }}
+      >
+        <input type="hidden" name="week" value={week} />
+        <input type="hidden" name="day" value={day} />
+        <input type="hidden" name="completed" value={completed ? "false" : "true"} />
+        <button type="submit" className={completed ? "btn-secondary" : "btn-primary"} disabled={pending}>
+          {pending ? "Saving…" : completed ? "Mark incomplete" : "Mark complete"}
+        </button>
+      </form>
+      {(completed || justCompleted) && nextHref ? (
+        <Link href={nextHref} className="nav-link inline-block text-sm">
+          Continue to next lesson →
+        </Link>
+      ) : null}
+      {(completed || justCompleted) && !nextHref ? (
+        <Link href="/" className="nav-link inline-block text-sm">
+          Back to Today →
+        </Link>
+      ) : null}
+    </div>
   );
 }
 

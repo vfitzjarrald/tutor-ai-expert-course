@@ -9,7 +9,7 @@ import { isGateWeek } from "@/lib/checks";
 import { loadDay, loadWeek } from "@/lib/curriculum";
 import { extractDeliverablePaths } from "@/lib/hub";
 import { getDayNote, getDayProgress } from "@/lib/progress";
-import { getPhaseForWeek, padWeek } from "@/lib/schedule";
+import { getPhaseForWeek, nextLessonPosition, padWeek, previousLessonPosition } from "@/lib/schedule";
 
 export const dynamic = "force-dynamic";
 
@@ -36,6 +36,9 @@ export default async function DayPage({
   const progress = await getDayProgress(session.id, weekNum, dayNum);
   const note = await getDayNote(session.id, weekNum, dayNum);
   const paths = extractDeliverablePaths(day.rawMarkdown);
+  const prev = previousLessonPosition(weekNum, dayNum);
+  const next = nextLessonPosition(weekNum, dayNum);
+  const nextHref = next ? `/weeks/${next.week}/days/${next.day}` : "/";
 
   return (
     <div>
@@ -46,7 +49,12 @@ export default async function DayPage({
       />
 
       <div className="mb-6 flex flex-wrap items-center gap-3">
-        <CompleteToggle week={weekNum} day={dayNum} completed={progress.completed} />
+        <CompleteToggle
+          week={weekNum}
+          day={dayNum}
+          completed={progress.completed}
+          nextHref={next ? nextHref : null}
+        />
         <Link href={`/weeks/${weekNum}`} className="btn-secondary">
           Week overview
         </Link>
@@ -58,16 +66,20 @@ export default async function DayPage({
             Phase gate
           </Link>
         ) : null}
-        {dayNum > 1 ? (
-          <Link href={`/weeks/${weekNum}/days/${dayNum - 1}`} className="nav-link">
-            ← Previous day
+        {prev ? (
+          <Link href={`/weeks/${prev.week}/days/${prev.day}`} className="nav-link">
+            ← Previous lesson
           </Link>
         ) : null}
-        {dayNum < 5 ? (
-          <Link href={`/weeks/${weekNum}/days/${dayNum + 1}`} className="nav-link">
-            Next day →
+        {next ? (
+          <Link href={`/weeks/${next.week}/days/${next.day}`} className="nav-link">
+            Next lesson →
           </Link>
-        ) : null}
+        ) : (
+          <Link href="/" className="nav-link">
+            Today →
+          </Link>
+        )}
       </div>
 
       <div className="grid gap-8 lg:grid-cols-[1.4fr_1fr]">

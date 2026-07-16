@@ -1,10 +1,11 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { ResetMyProgressForm } from "@/components/CourseInteractive";
 import { PageHero } from "@/components/SiteChrome";
 import { getSession } from "@/lib/auth";
 import { getLatestQuizScores, getGateStates } from "@/lib/learning";
-import { getCompletionStats } from "@/lib/progress";
-import { resolveStartDate } from "@/lib/schedule";
+import { getLearnerQueue } from "@/lib/progress";
+import { padWeek, resolveStartDate } from "@/lib/schedule";
 import { getUserCourseStartDate } from "@/lib/users";
 
 export const dynamic = "force-dynamic";
@@ -18,8 +19,8 @@ export default async function AccountPage() {
   if (!session) redirect("/login");
 
   const userStart = await getUserCourseStartDate(session.id);
-  const start = resolveStartDate(userStart);
-  const stats = await getCompletionStats(session.id);
+  const calendarStart = resolveStartDate(userStart);
+  const queue = await getLearnerQueue(session.id, 1);
   const quizzes = await getLatestQuizScores(session.id);
   const gates = await getGateStates(session.id);
   const gateDone = [...gates.values()].filter(Boolean).length;
@@ -29,20 +30,33 @@ export default async function AccountPage() {
       <PageHero
         eyebrow="Your account"
         title={session.displayName || session.username}
-        description="Manage your learner progress. Admins also use this page as a learner."
+        description="Manage your learner progress. Progression follows completed lessons, not the calendar."
       />
 
       <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="card">
-          <p className="text-xs font-semibold uppercase tracking-wide text-text-muted">Course start</p>
-          <p className="mt-2 text-lg text-heading">{formatDate(start)}</p>
-          <p className="text-sm">{userStart ? "Personal start date" : "Global course start"}</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-text-muted">Current task</p>
+          {queue.today ? (
+            <>
+              <p className="mt-2 text-lg text-heading">
+                Week {padWeek(queue.today.week)} · Day {queue.today.day}
+              </p>
+              <Link
+                href={`/weeks/${queue.today.week}/days/${queue.today.day}`}
+                className="nav-link mt-2 inline-block text-sm"
+              >
+                Open lesson
+              </Link>
+            </>
+          ) : (
+            <p className="mt-2 text-lg text-heading">Course complete</p>
+          )}
         </div>
         <div className="card">
           <p className="text-xs font-semibold uppercase tracking-wide text-text-muted">Progress</p>
-          <p className="mt-2 text-2xl text-heading">{stats.percent}%</p>
+          <p className="mt-2 text-2xl text-heading">{queue.stats.percent}%</p>
           <p className="text-sm">
-            {stats.completed} / {stats.total} days
+            {queue.stats.completed} done · {queue.stats.remaining} remaining
           </p>
         </div>
         <div className="card">
@@ -57,11 +71,23 @@ export default async function AccountPage() {
         </div>
       </div>
 
+      <div className="card mb-8">
+        <p className="text-xs font-semibold uppercase tracking-wide text-text-muted">
+          Calendar projection start
+        </p>
+        <p className="mt-2 text-heading">{formatDate(calendarStart)}</p>
+        <p className="mt-1 text-sm text-text-muted">
+          Optional planning dates only — does not control what “Do today” shows.
+          {userStart ? " Personal start date set." : " Using global course start."}
+        </p>
+      </div>
+
       <div className="card border-red-200">
         <h2 className="text-lg text-heading">Start over</h2>
         <p className="mt-2 text-sm">
-          Resets your calendar to <strong className="text-heading">Week 1</strong> (personal start date =
-          today), and clears day completion checkmarks, quiz attempts, and phase gate checklists.
+          Clears day completion checkmarks, quiz attempts, and phase gate checklists so{" "}
+          <strong className="text-heading">Do today</strong> returns to Week 1 Day 1. Also resets the
+          calendar projection start to today.
         </p>
         <p className="mt-2 text-sm font-semibold text-heading">Your day notes are kept.</p>
         <div className="mt-6">

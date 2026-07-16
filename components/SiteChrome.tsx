@@ -7,11 +7,11 @@ import type { SessionUser } from "@/lib/auth";
 
 const links = [
   { href: "/", label: "Today" },
-  { href: "/calendar", label: "Calendar" },
   { href: "/schedule", label: "Schedule" },
   { href: "/checks", label: "Checks" },
   { href: "/resources", label: "Resources" },
   { href: "/gates", label: "Gates" },
+  { href: "/calendar", label: "Calendar" },
   { href: "/account", label: "Account" },
 ];
 

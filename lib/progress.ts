@@ -9,7 +9,35 @@ import {
   localUpsertDayNote,
   isLocalStoreMode,
 } from "./local-store";
+import {
+  DAYS_PER_WEEK,
+  TOTAL_LESSONS,
+  TOTAL_WEEKS,
+  type LessonPosition,
+  remainingLessons,
+} from "./schedule";
 import { setUserCourseStartDate } from "./users";
+
+export type ProgressEntry = { completed: boolean; completedAt: string | null };
+
+/** Pure helper: first N incomplete lessons in course order. */
+export function findIncompleteLessons(
+  progress: Map<string, ProgressEntry>,
+  limit = 2,
+): LessonPosition[] {
+  const out: LessonPosition[] = [];
+  if (limit <= 0) return out;
+
+  for (let week = 1; week <= TOTAL_WEEKS; week++) {
+    for (let day = 1; day <= DAYS_PER_WEEK; day++) {
+      if (!progress.get(`${week}-${day}`)?.completed) {
+        out.push({ week, day });
+        if (out.length >= limit) return out;
+      }
+    }
+  }
+  return out;
+}
 
 export async function getProgressMap(userId: string) {
   if (isLocalStoreMode()) return localGetProgressMap(userId);
@@ -113,16 +141,30 @@ export async function getCompletionStats(userId: string) {
     WHERE user_id = ${userId} AND completed = TRUE
   `;
   const completed = (rows[0] as { completed: number }).completed;
-  const total = 78 * 5;
+  const total = TOTAL_LESSONS;
   return {
     completed,
     total,
+    remaining: remainingLessons(completed),
     percent: Math.round((completed / total) * 1000) / 10,
   };
 }
 
 export function progressKey(week: number, day: number) {
   return `${week}-${day}`;
+}
+
+export async function getLearnerQueue(userId: string, limit = 2) {
+  const map = await getProgressMap(userId);
+  const incomplete = findIncompleteLessons(map, limit);
+  const stats = await getCompletionStats(userId);
+  return {
+    today: incomplete[0] ?? null,
+    tomorrow: incomplete[1] ?? null,
+    incomplete,
+    courseComplete: incomplete.length === 0,
+    stats,
+  };
 }
 
 export async function resetLearnerProgress(userId: string, opts: { keepNotes: boolean }) {

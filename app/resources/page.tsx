@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { PageHero } from "@/components/SiteChrome";
 import { getSession } from "@/lib/auth";
+import { getLearnerQueue } from "@/lib/progress";
 import { loadResources } from "@/lib/resources";
-import { getCoursePosition, getPhaseForWeek, PHASES, resolveStartDate } from "@/lib/schedule";
-import { getUserCourseStartDate } from "@/lib/users";
+import { getPhaseForWeek, PHASES } from "@/lib/schedule";
 
 export const dynamic = "force-dynamic";
 
@@ -16,9 +16,9 @@ export default async function ResourcesPage({
   if (!session) return null;
 
   const params = await searchParams;
-  const start = resolveStartDate(await getUserCourseStartDate(session.id));
-  const position = getCoursePosition(new Date(), start);
-  const currentPhase = getPhaseForWeek(position.week).id;
+  const queue = await getLearnerQueue(session.id, 1);
+  const focusWeek = queue.today?.week ?? 1;
+  const currentPhase = getPhaseForWeek(focusWeek).id;
   const rawPhase = params.phase;
   const phaseFilter = rawPhase === undefined ? currentPhase : Number(rawPhase);
   const showAll = phaseFilter === 0;
@@ -30,50 +30,56 @@ export default async function ResourcesPage({
       <PageHero
         eyebrow="Library"
         title="Resources"
-        description="Curated references by phase. Each lesson day also embeds the links you need for that hour."
+        description="Curated links from the curriculum. Default filter follows your current (first incomplete) lesson."
       />
 
       <div className="mb-6 flex flex-wrap gap-2">
+        <Link
+          href="/resources?phase=0"
+          className={showAll ? "btn-primary text-sm" : "btn-secondary text-sm"}
+        >
+          All
+        </Link>
         {PHASES.map((p) => (
           <Link
             key={p.id}
             href={`/resources?phase=${p.id}`}
-            className={!showAll && phaseFilter === p.id ? "btn-primary text-sm" : "btn-secondary text-sm"}
+            className={
+              !showAll && phaseFilter === p.id ? "btn-primary text-sm" : "btn-secondary text-sm"
+            }
           >
             Phase {p.id}
+            {p.id === currentPhase && !showAll && phaseFilter === p.id ? " · current" : ""}
           </Link>
         ))}
-        <Link href="/resources?phase=0" className={showAll ? "btn-primary text-sm" : "btn-secondary text-sm"}>
-          All
-        </Link>
       </div>
 
-      <div className="overflow-x-auto card p-0">
-        <table className="w-full text-left text-sm">
-          <thead>
-            <tr className="border-b border-border bg-surface text-xs uppercase tracking-wide text-text-muted">
-              <th className="px-4 py-3">Resource</th>
-              <th className="px-4 py-3">Type</th>
-              <th className="px-4 py-3">Phase</th>
-              <th className="px-4 py-3">Note</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r) => (
-              <tr key={`${r.phase}-${r.title}`} className="border-b border-border align-top">
-                <td className="px-4 py-3">
-                  <a href={r.url} target="_blank" rel="noreferrer" className="font-semibold text-primary hover:underline">
-                    {r.title}
-                  </a>
-                </td>
-                <td className="px-4 py-3 capitalize text-text-muted">{r.type}</td>
-                <td className="px-4 py-3">{r.phase}</td>
-                <td className="px-4 py-3 text-text-muted">{r.note}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <ul className="space-y-3">
+        {rows.map((r, idx) => (
+          <li key={`${r.phase}-${r.title}-${idx}`} className="card">
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <div>
+                <p className="page-hero-step">
+                  Phase {r.phase}
+                  {r.type ? ` · ${r.type}` : ""}
+                </p>
+                <a
+                  href={r.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="nav-link text-base font-semibold"
+                >
+                  {r.title}
+                </a>
+                {r.note ? <p className="mt-2 text-sm text-text-muted">{r.note}</p> : null}
+              </div>
+            </div>
+          </li>
+        ))}
+        {rows.length === 0 ? (
+          <li className="card text-sm text-text-muted">No resources for this filter.</li>
+        ) : null}
+      </ul>
     </div>
   );
 }

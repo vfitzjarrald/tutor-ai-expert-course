@@ -2,7 +2,7 @@ import Link from "next/link";
 import { PageHero } from "@/components/SiteChrome";
 import { getSession } from "@/lib/auth";
 import { getWeekTitle } from "@/lib/curriculum";
-import { getProgressMap, progressKey } from "@/lib/progress";
+import { getLearnerQueue, getProgressMap, progressKey } from "@/lib/progress";
 import {
   dateForWeekDay,
   getCoursePosition,
@@ -27,6 +27,7 @@ export default async function CalendarPage({
   const params = await searchParams;
   const start = resolveStartDate(await getUserCourseStartDate(session.id));
   const today = getCoursePosition(new Date(), start);
+  const queue = await getLearnerQueue(session.id, 1);
   const now = new Date();
   const year = Number(params.year) || now.getFullYear();
   const month = Number(params.month) || now.getMonth() + 1; // 1-12
@@ -61,10 +62,25 @@ export default async function CalendarPage({
   return (
     <div>
       <PageHero
-        eyebrow="Course calendar"
+        eyebrow="Secondary planning view"
         title={monthLabel}
-        description="Mon–Fri lesson days mapped from your course start date. Completed days are highlighted."
+        description="Projected lesson dates from your start date. Dates do not control progression — “Do today” follows your first incomplete lesson."
       />
+
+      {queue.today ? (
+        <div className="card mb-4">
+          <p className="text-sm">
+            <span className="font-semibold text-heading">Actual next task: </span>
+            Week {padWeek(queue.today.week)} · Day {queue.today.day}{" "}
+            <Link href={`/weeks/${queue.today.week}/days/${queue.today.day}`} className="nav-link">
+              Open →
+            </Link>
+          </p>
+          <p className="mt-1 text-xs text-text-muted">
+            Highlighted days below are completed lessons mapped onto calendar dates for planning only.
+          </p>
+        </div>
+      ) : null}
 
       <div className="mb-4 flex items-center justify-between gap-4">
         <Link
