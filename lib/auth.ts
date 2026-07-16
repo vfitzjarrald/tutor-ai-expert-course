@@ -1,7 +1,7 @@
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import { getDb, type DbUser, type UserRole } from "./db";
-import { localGetUserById, useLocalStore } from "./local-store";
+import { localGetUserById, isLocalStoreMode } from "./local-store";
 import { hashPassword, verifyPassword } from "./password";
 
 export type SessionUser = {
@@ -81,7 +81,7 @@ export async function getSession(): Promise<SessionUser | null> {
   const session = await verifySessionToken(token);
   if (!session) return null;
 
-  if (useLocalStore()) {
+  if (isLocalStoreMode()) {
     const row = await localGetUserById(session.id);
     if (!row || !row.is_active) return null;
     return {

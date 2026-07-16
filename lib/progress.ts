@@ -6,11 +6,11 @@ import {
   localGetProgressMap,
   localSetDayCompleted,
   localUpsertDayNote,
-  useLocalStore,
+  isLocalStoreMode,
 } from "./local-store";
 
 export async function getProgressMap(userId: string) {
-  if (useLocalStore()) return localGetProgressMap(userId);
+  if (isLocalStoreMode()) return localGetProgressMap(userId);
 
   const sql = getDb();
   const rows = await sql`
@@ -29,7 +29,7 @@ export async function getProgressMap(userId: string) {
 }
 
 export async function getDayProgress(userId: string, week: number, day: number) {
-  if (useLocalStore()) return localGetDayProgress(userId, week, day);
+  if (isLocalStoreMode()) return localGetDayProgress(userId, week, day);
 
   const sql = getDb();
   const rows = await sql`
@@ -46,7 +46,7 @@ export async function getDayProgress(userId: string, week: number, day: number) 
 }
 
 export async function setDayCompleted(userId: string, week: number, day: number, completed: boolean) {
-  if (useLocalStore()) {
+  if (isLocalStoreMode()) {
     await localSetDayCompleted(userId, week, day, completed);
     return;
   }
@@ -70,7 +70,7 @@ export async function setDayCompleted(userId: string, week: number, day: number,
 }
 
 export async function getDayNote(userId: string, week: number, day: number) {
-  if (useLocalStore()) return localGetDayNote(userId, week, day);
+  if (isLocalStoreMode()) return localGetDayNote(userId, week, day);
 
   const sql = getDb();
   const rows = await sql`
@@ -87,7 +87,7 @@ export async function getDayNote(userId: string, week: number, day: number) {
 }
 
 export async function upsertDayNote(userId: string, week: number, day: number, body: string) {
-  if (useLocalStore()) {
+  if (isLocalStoreMode()) {
     await localUpsertDayNote(userId, week, day, body);
     return;
   }
@@ -102,7 +102,7 @@ export async function upsertDayNote(userId: string, week: number, day: number, b
 }
 
 export async function getCompletionStats(userId: string) {
-  if (useLocalStore()) return localGetCompletionStats(userId);
+  if (isLocalStoreMode()) return localGetCompletionStats(userId);
 
   const sql = getDb();
   const rows = await sql`

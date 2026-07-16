@@ -7,11 +7,11 @@ import {
   localListUsers,
   localResetUserPassword,
   localSetUserActive,
-  useLocalStore,
+  isLocalStoreMode,
 } from "./local-store";
 
 export async function ensureAdminSeeded() {
-  if (useLocalStore()) {
+  if (isLocalStoreMode()) {
     await localEnsureAdminSeeded();
     return;
   }
@@ -35,7 +35,7 @@ export async function ensureAdminSeeded() {
 }
 
 export async function findUserByUsername(username: string): Promise<DbUser | null> {
-  if (useLocalStore()) {
+  if (isLocalStoreMode()) {
     const user = await localFindUserByUsername(username);
     return user as DbUser | null;
   }
@@ -61,7 +61,7 @@ export async function listUsers() {
     created_by: string | null;
   };
 
-  if (useLocalStore()) {
+  if (isLocalStoreMode()) {
     return (await localListUsers()) as ListedUser[];
   }
 
@@ -80,7 +80,7 @@ export async function createLearner(opts: {
   displayName?: string;
   createdBy: string;
 }) {
-  if (useLocalStore()) {
+  if (isLocalStoreMode()) {
     return localCreateLearner(opts);
   }
 
@@ -101,7 +101,7 @@ export async function createLearner(opts: {
 }
 
 export async function setUserActive(userId: string, isActive: boolean) {
-  if (useLocalStore()) {
+  if (isLocalStoreMode()) {
     await localSetUserActive(userId, isActive);
     return;
   }
@@ -110,7 +110,7 @@ export async function setUserActive(userId: string, isActive: boolean) {
 }
 
 export async function resetUserPassword(userId: string, password: string) {
-  if (useLocalStore()) {
+  if (isLocalStoreMode()) {
     await localResetUserPassword(userId, password);
     return;
   }

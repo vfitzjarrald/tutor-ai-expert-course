@@ -57,7 +57,7 @@ function writeStore(data: StoreData) {
   writeFileSync(storePath(), JSON.stringify(data, null, 2), "utf8");
 }
 
-export function useLocalStore() {
+export function isLocalStoreMode() {
   const url = process.env.DATABASE_URL ?? "";
   return !url || url.includes("placeholder");
 }
