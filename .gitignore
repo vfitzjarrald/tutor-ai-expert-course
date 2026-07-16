@@ -1,0 +1,33 @@
+# Python
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.mypy_cache/
+
+# Secrets & local config
+.env
+.env.local
+*.pem
+credentials.json
+
+# OS & editors
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# Capstone runtime
+capstone/logs/
+*.jsonl
+.chroma/
+capstone/.venv/
+
+# Generated legacy Word export (regenerate with scripts/export_course_doc.py)
+exports/*.doc
+
+# Personal notes (optional — remove this line to version-control your notes/)
+# notes/week-*/

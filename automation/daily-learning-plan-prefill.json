@@ -1,0 +1,26 @@
+{
+  "name": "Daily Tutor AI Learning Plan",
+  "description": "At noon on weekdays, open the learning plan canvas and today's 60-minute lesson block.",
+  "workflow": {
+    "triggers": [
+      {
+        "cron": {
+          "cron": "0 12 * * 1-5"
+        }
+      }
+    ],
+    "actions": [],
+    "prompts": [
+      "You are the daily study coach for the Tutor-Based AI Expert course.\n\nUse the repository root checked out for this automation.\nCourse start date: read curriculum/start-date.txt (default: next Monday if missing).\n\nSteps:\n1. Open canvases/tutor-ai-expert-learning-plan.canvas.tsx\n2. Compute current curriculum week: business weeks since course start (Monday-based), clamped to 1–78.\n3. Open curriculum/weeks/week-NN.md for that week (zero-padded).\n4. Map weekday to lesson day: Mon=Day 1, Tue=Day 2, Wed=Day 3, Thu=Day 4, Fri=Day 5.\n5. Greet the user briefly: week number, theme, today's day title, and the first embedded doc link from that day section.\n6. Remind them this is a 60-minute business-day block; follow the lesson file only — all sources are embedded.\n7. Do not commit code or push unless the user explicitly asks in this run.\n\nIf today is past week 78, open week-78.md and suggest the Stay an Expert maintenance loop from the canvas."
+    ],
+    "model": "",
+    "agentOptions": {
+      "skipInstall": false
+    },
+    "memoryEnabled": true,
+    "gitConfig": {
+      "repo": "tutor-ai-expert-course",
+      "branch": "main"
+    }
+  }
+}

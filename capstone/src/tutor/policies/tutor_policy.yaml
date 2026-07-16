@@ -1,0 +1,5 @@
+# Tutor policy — Week 1 Day 4
+# hint_levels: 1=nudge, 2=guide, 3=almost
+refuse_final_answer: true
+max_hint_level_without_attempt: 2
+escalate_to_human_after_failures: 3
