@@ -1,0 +1,167 @@
+@import url("https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,300;1,400;1,600;1,700&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-primary: "Open Sans", Arial, sans-serif;
+  --color-primary: #2ea3f2;
+  --color-primary-hover: #82c0c7;
+  --color-text: #666666;
+  --color-heading: #333333;
+  --color-background: #ffffff;
+  --color-surface: #f3f3f3;
+  --color-footer: #222222;
+  --header-height: 80px;
+  --container-max-width: 1080px;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-primary);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.7;
+  color: var(--color-text);
+  background: var(--color-background);
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+
+body.has-chrome {
+  padding-top: var(--header-height);
+}
+
+h1,
+h2,
+h3,
+h4 {
+  color: var(--color-heading);
+  font-weight: 500;
+}
+
+@layer components {
+  .container-app {
+    @apply mx-auto w-[80%] max-w-container px-4;
+  }
+
+  .btn-primary {
+    @apply bg-primary px-6 py-2 text-white transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60;
+  }
+
+  .btn-secondary {
+    @apply border border-border bg-white px-4 py-2 text-heading transition-colors hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-60;
+  }
+
+  .header-action-btn {
+    @apply inline-flex h-9 shrink-0 items-center justify-center px-4 py-0 text-sm font-semibold leading-none;
+  }
+
+  .card {
+    @apply border border-border bg-white p-6;
+  }
+
+  .input-field {
+    @apply w-full border border-border px-4 py-3 text-heading outline-none transition-colors focus:border-primary;
+  }
+
+  .textarea-field {
+    @apply w-full resize-y border border-border px-4 py-3 font-mono text-sm leading-relaxed text-heading outline-none transition-colors focus:border-primary;
+  }
+
+  .nav-link {
+    @apply text-sm font-semibold text-text transition-colors hover:text-primary;
+  }
+
+  .nav-link-active {
+    @apply text-primary;
+  }
+
+  .page-hero {
+    @apply relative rounded-sm border border-border bg-gradient-to-br from-white via-surface to-[#E8F4FC];
+  }
+
+  .page-hero-inner {
+    @apply grid gap-4 p-4 md:grid-cols-[1fr_160px] md:items-center md:p-5;
+  }
+
+  .page-hero-content {
+    @apply relative z-10;
+  }
+
+  .page-hero-title {
+    @apply mb-1 text-2xl text-heading md:text-3xl;
+  }
+
+  .page-hero-desc {
+    @apply max-w-2xl text-sm text-text md:text-base;
+  }
+
+  .page-hero-step {
+    @apply mb-2 inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-primary;
+  }
+
+  .auth-gate-wrap {
+    @apply grid gap-8 lg:grid-cols-[1fr_300px] lg:items-start;
+  }
+
+  .prose-lesson {
+    @apply text-text;
+  }
+
+  .prose-lesson h1,
+  .prose-lesson h2,
+  .prose-lesson h3,
+  .prose-lesson h4 {
+    @apply mt-6 mb-2 text-heading;
+  }
+
+  .prose-lesson a {
+    @apply text-primary underline-offset-2 hover:underline;
+  }
+
+  .prose-lesson ul {
+    @apply my-3 list-disc pl-5;
+  }
+
+  .prose-lesson ol {
+    @apply my-3 list-decimal pl-5;
+  }
+
+  .prose-lesson table {
+    @apply my-4 w-full border-collapse text-sm;
+  }
+
+  .prose-lesson th,
+  .prose-lesson td {
+    @apply border border-border px-3 py-2 text-left;
+  }
+
+  .prose-lesson th {
+    @apply bg-surface font-semibold text-heading;
+  }
+
+  .prose-lesson code {
+    @apply rounded bg-surface px-1 py-0.5 font-mono text-xs text-heading;
+  }
+
+  .cal-day {
+    @apply flex min-h-[4.5rem] flex-col border border-border bg-white p-2 text-left transition-colors hover:border-primary;
+  }
+
+  .cal-day-today {
+    @apply border-primary bg-primary/5 ring-1 ring-primary/30;
+  }
+
+  .cal-day-done {
+    @apply border-primary/40 bg-[#E8F4FC]/60;
+  }
+
+  .cal-day-muted {
+    @apply bg-surface text-text-muted;
+  }
+}

@@ -1,3 +1,29 @@
+next
+next-env.d.ts
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Next / Node
+.next/
+out/
+dist/
+build/
+*.tsbuildinfo
+
+# Env (keep .env.example tracked)
+.env
+.env.local
+.env.*.local
+.env*
+!.env.example
+
+# Local file DB fallback (used when DATABASE_URL is unset/placeholder)
+data/
+data/local-store.json
+
 # Python
 .venv/
 venv/
@@ -8,8 +34,6 @@ __pycache__/
 .mypy_cache/
 
 # Secrets & local config
-.env
-.env.local
 *.pem
 credentials.json
 
@@ -26,8 +50,6 @@ capstone/logs/
 .chroma/
 capstone/.venv/
 
-# Generated legacy Word export (regenerate with scripts/export_course_doc.py)
+# Generated legacy Word export
 exports/*.doc
-
-# Personal notes (optional — remove this line to version-control your notes/)
-# notes/week-*/
+.vercel
