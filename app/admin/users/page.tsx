@@ -1,5 +1,9 @@
 import { redirect } from "next/navigation";
-import { CreateUserForm, ResetPasswordButton } from "@/components/CourseInteractive";
+import {
+  CreateUserForm,
+  ResetLearnerProgressButton,
+  ResetPasswordButton,
+} from "@/components/CourseInteractive";
 import { PageHero } from "@/components/SiteChrome";
 import { toggleUserActiveAction } from "@/app/actions";
 import { getSession } from "@/lib/auth";
@@ -55,9 +59,13 @@ export default async function AdminUsersPage() {
                           </button>
                         </form>
                         <ResetPasswordButton userId={u.id} />
+                        <ResetLearnerProgressButton userId={u.id} username={u.username} />
                       </>
                     ) : (
-                      <span className="text-xs text-text-muted">—</span>
+                      <div className="space-y-2">
+                        <p className="text-xs text-text-muted">Use Account → Start over for yourself.</p>
+                        <ResetLearnerProgressButton userId={u.id} username={u.username} />
+                      </div>
                     )}
                   </td>
                 </tr>

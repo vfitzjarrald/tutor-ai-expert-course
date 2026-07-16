@@ -4,9 +4,11 @@ import {
   localCreateLearner,
   localEnsureAdminSeeded,
   localFindUserByUsername,
+  localGetUserCourseStartDate,
   localListUsers,
   localResetUserPassword,
   localSetUserActive,
+  localSetUserCourseStartDate,
   isLocalStoreMode,
 } from "./local-store";
 
@@ -123,4 +125,47 @@ export function generatePassword(length = 14): string {
   const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%";
   const bytes = crypto.getRandomValues(new Uint8Array(length));
   return Array.from(bytes, (b) => alphabet[b % alphabet.length]).join("");
+}
+
+function parseDateOnly(raw: string): Date | null {
+  const [y, m, d] = raw.split("-").map(Number);
+  if (!y || !m || !d) return null;
+  return new Date(y, m - 1, d, 12, 0, 0, 0);
+}
+
+function formatDateOnly(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+export async function getUserCourseStartDate(userId: string): Promise<Date | null> {
+  if (isLocalStoreMode()) return localGetUserCourseStartDate(userId);
+
+  const sql = getDb();
+  const rows = await sql`
+    SELECT course_start_date::text
+    FROM users
+    WHERE id = ${userId}
+    LIMIT 1
+  `;
+  const raw = (rows[0] as { course_start_date: string | null } | undefined)?.course_start_date;
+  if (!raw) return null;
+  return parseDateOnly(raw.slice(0, 10));
+}
+
+export async function setUserCourseStartDate(userId: string, date: Date) {
+  if (isLocalStoreMode()) {
+    await localSetUserCourseStartDate(userId, date);
+    return;
+  }
+
+  const sql = getDb();
+  const value = formatDateOnly(date);
+  await sql`
+    UPDATE users
+    SET course_start_date = ${value}::date
+    WHERE id = ${userId}
+  `;
 }

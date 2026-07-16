@@ -89,6 +89,11 @@ async function main() {
   `;
   await sql`CREATE INDEX IF NOT EXISTS idx_gate_items_user ON gate_items(user_id)`;
 
+  await sql`
+    ALTER TABLE users
+    ADD COLUMN IF NOT EXISTS course_start_date DATE
+  `;
+
   const admins = await sql`SELECT id FROM users WHERE role = 'admin' LIMIT 1`;
   if (admins.length === 0) {
     const username = process.env.ADMIN_USERNAME?.trim();

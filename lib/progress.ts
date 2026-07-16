@@ -4,10 +4,12 @@ import {
   localGetDayNote,
   localGetDayProgress,
   localGetProgressMap,
+  localResetLearnerProgress,
   localSetDayCompleted,
   localUpsertDayNote,
   isLocalStoreMode,
 } from "./local-store";
+import { setUserCourseStartDate } from "./users";
 
 export async function getProgressMap(userId: string) {
   if (isLocalStoreMode()) return localGetProgressMap(userId);
@@ -121,4 +123,23 @@ export async function getCompletionStats(userId: string) {
 
 export function progressKey(week: number, day: number) {
   return `${week}-${day}`;
+}
+
+export async function resetLearnerProgress(userId: string, opts: { keepNotes: boolean }) {
+  if (isLocalStoreMode()) {
+    await localResetLearnerProgress(userId, opts);
+    return;
+  }
+
+  const sql = getDb();
+  await sql`DELETE FROM day_progress WHERE user_id = ${userId}`;
+  await sql`DELETE FROM quiz_attempts WHERE user_id = ${userId}`;
+  await sql`DELETE FROM gate_items WHERE user_id = ${userId}`;
+  if (!opts.keepNotes) {
+    await sql`DELETE FROM day_notes WHERE user_id = ${userId}`;
+  }
+
+  const today = new Date();
+  today.setHours(12, 0, 0, 0);
+  await setUserCourseStartDate(userId, today);
 }

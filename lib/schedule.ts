@@ -48,6 +48,11 @@ export function readStartDate(repoRoot = process.cwd()): Date {
   return new Date(y, m - 1, d, 12, 0, 0, 0);
 }
 
+/** Prefer a per-user start date; otherwise fall back to the global curriculum start. */
+export function resolveStartDate(userStart: Date | null, repoRoot = process.cwd()): Date {
+  return userStart ?? readStartDate(repoRoot);
+}
+
 function startOfLocalDay(d: Date): Date {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 12, 0, 0, 0);
 }

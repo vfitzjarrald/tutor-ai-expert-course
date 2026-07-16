@@ -2,7 +2,8 @@ import Link from "next/link";
 import { PageHero } from "@/components/SiteChrome";
 import { getSession } from "@/lib/auth";
 import { loadResources } from "@/lib/resources";
-import { getCoursePosition, getPhaseForWeek, PHASES, readStartDate } from "@/lib/schedule";
+import { getCoursePosition, getPhaseForWeek, PHASES, resolveStartDate } from "@/lib/schedule";
+import { getUserCourseStartDate } from "@/lib/users";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +16,8 @@ export default async function ResourcesPage({
   if (!session) return null;
 
   const params = await searchParams;
-  const position = getCoursePosition(new Date(), readStartDate());
+  const start = resolveStartDate(await getUserCourseStartDate(session.id));
+  const position = getCoursePosition(new Date(), start);
   const currentPhase = getPhaseForWeek(position.week).id;
   const rawPhase = params.phase;
   const phaseFilter = rawPhase === undefined ? currentPhase : Number(rawPhase);

@@ -6,8 +6,8 @@ import { loadWeek } from "@/lib/curriculum";
 import { gatesByPhase } from "@/lib/gates";
 import { getGateStates, getLatestQuizScore } from "@/lib/learning";
 import { getCompletionStats, getDayProgress } from "@/lib/progress";
-import { getCoursePosition, getPhaseForWeek, padWeek, readStartDate } from "@/lib/schedule";
-import { ensureAdminSeeded } from "@/lib/users";
+import { getCoursePosition, getPhaseForWeek, padWeek, resolveStartDate } from "@/lib/schedule";
+import { ensureAdminSeeded, getUserCourseStartDate } from "@/lib/users";
 
 export const dynamic = "force-dynamic";
 
@@ -21,7 +21,7 @@ export default async function HomePage() {
   const session = await getSession();
   if (!session) return null;
 
-  const start = readStartDate();
+  const start = resolveStartDate(await getUserCourseStartDate(session.id));
   const position = getCoursePosition(new Date(), start);
   const week = loadWeek(position.week);
   const day = week?.days.find((d) => d.day === position.day);

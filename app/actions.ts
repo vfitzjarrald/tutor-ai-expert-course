@@ -9,8 +9,16 @@ import {
   requireAdmin,
   requireSession,
 } from "@/lib/auth";
-import { ensureAdminSeeded, findUserByUsername, createLearner, setUserActive, resetUserPassword, generatePassword } from "@/lib/users";
-import { setDayCompleted, upsertDayNote } from "@/lib/progress";
+import {
+  ensureAdminSeeded,
+  findUserByUsername,
+  createLearner,
+  setUserActive,
+  resetUserPassword,
+  generatePassword,
+  listUsers,
+} from "@/lib/users";
+import { resetLearnerProgress, setDayCompleted, upsertDayNote } from "@/lib/progress";
 
 export type ActionResult = { ok: true; message?: string; password?: string } | { ok: false; error: string };
 
@@ -187,4 +195,51 @@ export async function toggleGateItemAction(formData: FormData): Promise<void> {
   if (!phase || !itemKey) return;
   const { setGateItem } = await import("@/lib/learning");
   await setGateItem(session.id, phase, itemKey, done);
+}
+
+export async function resetMyProgressAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  try {
+    const session = await requireSession();
+    const confirm = String(formData.get("confirm") ?? "").trim();
+    if (confirm.toLowerCase() !== session.username.toLowerCase()) {
+      return { ok: false, error: `Type your username (${session.username}) to confirm.` };
+    }
+    await resetLearnerProgress(session.id, { keepNotes: true });
+  } catch (err) {
+    console.error(err);
+    return { ok: false, error: "Could not reset progress." };
+  }
+  redirect("/");
+}
+
+export async function resetLearnerProgressAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  try {
+    await requireAdmin();
+    const userId = String(formData.get("userId") ?? "");
+    const confirm = String(formData.get("confirm") ?? "").trim();
+    if (!userId) return { ok: false, error: "Missing user." };
+
+    const users = await listUsers();
+    const target = users.find((u) => u.id === userId);
+    if (!target) return { ok: false, error: "User not found." };
+    if (confirm.toLowerCase() !== target.username.toLowerCase()) {
+      return { ok: false, error: `Type “${target.username}” to confirm.` };
+    }
+
+    await resetLearnerProgress(userId, { keepNotes: true });
+    return { ok: true, message: `Reset progress for ${target.username}. Calendar starts at Week 1; notes were kept.` };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Failed";
+    if (message === "UNAUTHORIZED" || message === "FORBIDDEN") {
+      return { ok: false, error: "Admin access required." };
+    }
+    console.error(err);
+    return { ok: false, error: "Could not reset progress." };
+  }
 }

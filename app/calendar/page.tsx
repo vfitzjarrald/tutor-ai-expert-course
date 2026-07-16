@@ -8,10 +8,11 @@ import {
   getCoursePosition,
   isBusinessDay,
   padWeek,
-  readStartDate,
+  resolveStartDate,
   TOTAL_WEEKS,
   weekdayToCourseDay,
 } from "@/lib/schedule";
+import { getUserCourseStartDate } from "@/lib/users";
 
 export const dynamic = "force-dynamic";
 
@@ -24,7 +25,7 @@ export default async function CalendarPage({
   if (!session) return null;
 
   const params = await searchParams;
-  const start = readStartDate();
+  const start = resolveStartDate(await getUserCourseStartDate(session.id));
   const today = getCoursePosition(new Date(), start);
   const now = new Date();
   const year = Number(params.year) || now.getFullYear();

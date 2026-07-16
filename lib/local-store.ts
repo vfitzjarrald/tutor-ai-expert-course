@@ -13,6 +13,7 @@ export type StoreUser = {
   is_active: boolean;
   created_at: string;
   created_by: string | null;
+  course_start_date?: string | null;
 };
 
 type ProgressRow = {
@@ -289,6 +290,45 @@ export async function localSetGateItem(userId: string, phase: number, itemKey: s
   };
   if (idx >= 0) data.gate_items[idx] = row;
   else data.gate_items.push(row);
+  writeStore(data);
+}
+
+export async function localGetUserCourseStartDate(userId: string): Promise<Date | null> {
+  const data = readStore();
+  const user = data.users.find((u) => u.id === userId);
+  if (!user?.course_start_date) return null;
+  const [y, m, d] = user.course_start_date.split("-").map(Number);
+  if (!y || !m || !d) return null;
+  return new Date(y, m - 1, d, 12, 0, 0, 0);
+}
+
+export async function localSetUserCourseStartDate(userId: string, date: Date) {
+  const data = readStore();
+  const user = data.users.find((u) => u.id === userId);
+  if (!user) return;
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  user.course_start_date = `${y}-${m}-${d}`;
+  writeStore(data);
+}
+
+export async function localResetLearnerProgress(userId: string, opts: { keepNotes: boolean }) {
+  const data = readStore();
+  data.progress = data.progress.filter((p) => p.user_id !== userId);
+  data.quiz_attempts = (data.quiz_attempts ?? []).filter((a) => a.user_id !== userId);
+  data.gate_items = (data.gate_items ?? []).filter((g) => g.user_id !== userId);
+  if (!opts.keepNotes) {
+    data.notes = data.notes.filter((n) => n.user_id !== userId);
+  }
+  const user = data.users.find((u) => u.id === userId);
+  if (user) {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, "0");
+    const d = String(now.getDate()).padStart(2, "0");
+    user.course_start_date = `${y}-${m}-${d}`;
+  }
   writeStore(data);
 }
 

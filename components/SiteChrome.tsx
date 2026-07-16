@@ -12,6 +12,7 @@ const links = [
   { href: "/checks", label: "Checks" },
   { href: "/resources", label: "Resources" },
   { href: "/gates", label: "Gates" },
+  { href: "/account", label: "Account" },
 ];
 
 export function SiteHeader({ user }: { user: SessionUser | null }) {

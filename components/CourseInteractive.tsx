@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import {
   createUserAction,
   loginAction,
+  resetLearnerProgressAction,
+  resetMyProgressAction,
   resetPasswordAction,
   saveNoteAction,
   toggleDayCompleteAction,
@@ -180,6 +182,80 @@ export function ResetPasswordButton({ userId }: { userId: string }) {
         <p className="font-mono text-xs text-primary">{state.password}</p>
       ) : null}
       {state && !state.ok ? <p className="text-xs text-red-600">{state.error}</p> : null}
+    </form>
+  );
+}
+
+export function ResetMyProgressForm({ username }: { username: string }) {
+  const [state, formAction, pending] = useActionState(resetMyProgressAction, null as ActionResult | null);
+
+  return (
+    <form action={formAction} className="space-y-4">
+      <div>
+        <label className="mb-1 block text-sm font-semibold text-heading" htmlFor="confirm-username">
+          Type your username to confirm
+        </label>
+        <input
+          id="confirm-username"
+          name="confirm"
+          className="input-field"
+          placeholder={username}
+          autoComplete="off"
+          required
+        />
+      </div>
+      {state && !state.ok ? <p className="text-sm text-red-600">{state.error}</p> : null}
+      <button type="submit" className="btn-primary bg-red-600 hover:bg-red-700" disabled={pending}>
+        {pending ? "Resetting…" : "Start over"}
+      </button>
+    </form>
+  );
+}
+
+export function ResetLearnerProgressButton({
+  userId,
+  username,
+}: {
+  userId: string;
+  username: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [state, formAction, pending] = useActionState(resetLearnerProgressAction, null as ActionResult | null);
+  const router = useRouter();
+
+  useEffect(() => {
+    if (state?.ok) {
+      setOpen(false);
+      router.refresh();
+    }
+  }, [state, router]);
+
+  if (!open) {
+    return (
+      <button type="button" className="btn-secondary text-xs" onClick={() => setOpen(true)}>
+        Reset progress
+      </button>
+    );
+  }
+
+  return (
+    <form action={formAction} className="space-y-2 rounded border border-border p-2">
+      <input type="hidden" name="userId" value={userId} />
+      <p className="text-xs text-text-muted">
+        Clears completion, quizzes, and gates for <span className="font-semibold text-heading">{username}</span>.
+        Notes are kept. Type their username to confirm.
+      </p>
+      <input name="confirm" className="input-field text-xs" placeholder={username} autoComplete="off" required />
+      {state?.ok ? <p className="text-xs text-primary">{state.message}</p> : null}
+      {state && !state.ok ? <p className="text-xs text-red-600">{state.error}</p> : null}
+      <div className="flex flex-wrap gap-2">
+        <button type="submit" className="btn-primary bg-red-600 text-xs hover:bg-red-700" disabled={pending}>
+          {pending ? "…" : "Confirm reset"}
+        </button>
+        <button type="button" className="btn-secondary text-xs" onClick={() => setOpen(false)} disabled={pending}>
+          Cancel
+        </button>
+      </div>
     </form>
   );
 }
