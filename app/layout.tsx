@@ -4,8 +4,8 @@ import { SiteFooter, SiteHeader } from "@/components/SiteChrome";
 import { getSession } from "@/lib/auth";
 
 export const metadata: Metadata = {
-  title: "Tutor AI Expert Course | Victor Fitzjarrald",
-  description: "Personal multi-user portal for the 78-week tutor-based AI expert curriculum.",
+  title: "VPF AI Expert",
+  description: "Recognized Expert Fast Track — personal multi-user portal for the tutor-based AI expert curriculum.",
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
