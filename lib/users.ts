@@ -9,6 +9,7 @@ import {
   localResetUserPassword,
   localSetUserActive,
   localSetUserCourseStartDate,
+  localGetUserById,
   isLocalStoreMode,
 } from "./local-store";
 
@@ -47,6 +48,21 @@ export async function findUserByUsername(username: string): Promise<DbUser | nul
     SELECT id, username, password_hash, role, display_name, is_active, created_at::text, created_by
     FROM users
     WHERE lower(username) = lower(${username})
+    LIMIT 1
+  `;
+  return (rows[0] as DbUser | undefined) ?? null;
+}
+
+export async function getUserById(userId: string): Promise<DbUser | null> {
+  if (isLocalStoreMode()) {
+    const user = await localGetUserById(userId);
+    return user as DbUser | null;
+  }
+  const sql = getDb();
+  const rows = await sql`
+    SELECT id, username, password_hash, role, display_name, is_active, created_at::text, created_by
+    FROM users
+    WHERE id = ${userId}
     LIMIT 1
   `;
   return (rows[0] as DbUser | undefined) ?? null;

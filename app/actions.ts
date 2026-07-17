@@ -135,6 +135,12 @@ export async function toggleDayCompleteAction(formData: FormData): Promise<void>
   const completed = String(formData.get("completed") ?? "") === "true";
   if (!week || !day) return;
   await setDayCompleted(session.id, week, day, completed);
+  if (completed) {
+    const { syncUserAchievements } = await import("@/lib/achievements");
+    await syncUserAchievements(session.id);
+  }
+  revalidatePath("/achievements");
+  revalidatePath("/");
 }
 
 export async function saveNoteAction(formData: FormData): Promise<ActionResult> {
@@ -175,6 +181,11 @@ export async function submitQuizAction(
     await saveQuizAttempt(session.id, savedScope, result.scorePct, answers);
     const threshold = thresholdForScope(scope);
     const passed = result.scorePct >= threshold;
+    if (passed && !placement) {
+      const { syncUserAchievements } = await import("@/lib/achievements");
+      await syncUserAchievements(session.id);
+      revalidatePath("/achievements");
+    }
     return {
       ok: true,
       message: passed
@@ -260,10 +271,13 @@ export async function submitDiagnosticAction(
       answers,
       waiverSkillIds,
     );
+    const { syncUserAchievements } = await import("@/lib/achievements");
+    await syncUserAchievements(session.id);
     revalidatePath("/");
     revalidatePath("/diagnostics");
     revalidatePath(`/diagnostics/${phase}`);
     revalidatePath("/schedule");
+    revalidatePath("/achievements");
     return {
       ok: true,
       message:
@@ -283,6 +297,43 @@ export async function submitDiagnosticAction(
   }
 }
 
+export async function markAchievementsCelebratedAction(achievementIds: string[]) {
+  const session = await requireSession();
+  const { markAchievementsCelebrated } = await import("@/lib/achievements");
+  await markAchievementsCelebrated(session.id, achievementIds);
+  revalidatePath("/");
+  revalidatePath("/achievements");
+}
+
+export async function submitPearsonCredentialAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  try {
+    const session = await requireSession();
+    const credentialId = String(formData.get("credentialId") ?? "").trim();
+    const issuedOn = String(formData.get("issuedOn") ?? "").trim();
+    const attest = String(formData.get("attest") ?? "") === "true";
+    if (!credentialId || !issuedOn) {
+      return { ok: false, error: "Credential ID and issue date are required." };
+    }
+    if (!attest) {
+      return { ok: false, error: "Please confirm the attestation checkbox." };
+    }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(issuedOn)) {
+      return { ok: false, error: "Issue date must be a valid date." };
+    }
+    const { submitPearsonCredential } = await import("@/lib/achievements");
+    await submitPearsonCredential(session.id, credentialId, issuedOn);
+    revalidatePath("/achievements");
+    revalidatePath("/");
+    return { ok: true, message: "Pearson credential saved. Bonus badge unlocked." };
+  } catch (error) {
+    console.error(error);
+    return { ok: false, error: "Could not save the Pearson credential." };
+  }
+}
+
 export async function toggleGateItemAction(formData: FormData): Promise<void> {
   const session = await requireSession();
   const phase = Number(formData.get("phase"));
@@ -291,6 +342,13 @@ export async function toggleGateItemAction(formData: FormData): Promise<void> {
   if (!phase || !itemKey) return;
   const { setGateItem } = await import("@/lib/learning");
   await setGateItem(session.id, phase, itemKey, done);
+  if (done) {
+    const { syncUserAchievements } = await import("@/lib/achievements");
+    await syncUserAchievements(session.id);
+  }
+  revalidatePath("/achievements");
+  revalidatePath("/gates");
+  revalidatePath("/");
 }
 
 export async function toggleLessonTaskAction(formData: FormData): Promise<void> {

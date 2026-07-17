@@ -69,6 +69,9 @@ export default async function AccountPage() {
             {queue.stats.completedLessons} completed · {queue.stats.waivedLessons} waived
           </p>
           <p className="text-xs text-text-muted">{queue.stats.remaining} remaining</p>
+          <Link href="/achievements" className="nav-link mt-2 inline-block text-sm">
+            My Achievements
+          </Link>
           <Link href="/diagnostics" className="nav-link mt-2 inline-block text-sm">
             Diagnostics & growth
           </Link>
@@ -102,6 +105,7 @@ export default async function AccountPage() {
           Clears day completion checkmarks, quiz attempts, and phase gate checklists so{" "}
           <strong className="text-heading">My AI Day</strong> returns to the first Fast Track lesson.
           Diagnostic baselines and waivers are cleared, gates stay mandatory, and the calendar projection resets to today.
+          Earned achievements and certificates are permanent and are not cleared.
         </p>
         <p className="mt-2 text-sm font-semibold text-heading">Your day notes are kept.</p>
         <div className="mt-6">

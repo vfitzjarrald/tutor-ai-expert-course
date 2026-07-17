@@ -16,6 +16,7 @@ import {
   MoreIcon,
   SparkIcon,
   TargetIcon,
+  TrophyIcon,
   UserIcon,
 } from "@/components/Icons";
 
@@ -112,7 +113,10 @@ function BrandMark({ compact = false }: { compact?: boolean }) {
 export function SiteHeader({ user }: { user: SessionUser | null }) {
   const pathname = usePathname();
   const moreActive = moreLinks.some((link) => isActive(pathname, link.href, link.match));
-  const accountActive = pathname.startsWith("/account") || pathname.startsWith("/admin");
+  const accountActive =
+    pathname.startsWith("/account") ||
+    pathname.startsWith("/admin") ||
+    pathname.startsWith("/achievements");
   const initials = (user?.displayName || user?.username || "U")
     .split(/\s+/)
     .map((part) => part[0])
@@ -169,6 +173,18 @@ export function SiteHeader({ user }: { user: SessionUser | null }) {
               }
               active={accountActive}
             >
+              <Link
+                href="/achievements"
+                className={
+                  pathname.startsWith("/achievements")
+                    ? "nav-menu-item nav-menu-item-active"
+                    : "nav-menu-item"
+                }
+                role="menuitem"
+              >
+                <TrophyIcon size={16} />
+                Achievements
+              </Link>
               <Link
                 href="/account"
                 className={

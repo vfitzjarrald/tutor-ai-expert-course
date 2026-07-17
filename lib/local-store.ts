@@ -82,6 +82,35 @@ type DiagnosticWaiverRow = {
   awarded_at: string;
 };
 
+export type LocalUserAchievementRow = {
+  id: string;
+  user_id: string;
+  achievement_id: string;
+  source_type: string;
+  source_ref: string | null;
+  evidence: Record<string, unknown>;
+  earned_at: string;
+  celebrated_at: string | null;
+};
+
+type ExternalCredentialRow = {
+  id: string;
+  user_id: string;
+  provider: string;
+  credential_id: string;
+  issued_on: string;
+  attested_at: string;
+  notes: string | null;
+};
+
+type ExpertCertificateRow = {
+  id: string;
+  user_id: string;
+  recipient_name: string;
+  issued_at: string;
+  pd_hours: number;
+};
+
 type StoreData = {
   users: StoreUser[];
   progress: ProgressRow[];
@@ -91,6 +120,9 @@ type StoreData = {
   lesson_task_progress?: LessonTaskRow[];
   diagnostic_attempts?: LocalDiagnosticAttemptRow[];
   diagnostic_waivers?: DiagnosticWaiverRow[];
+  user_achievements?: LocalUserAchievementRow[];
+  external_credentials?: ExternalCredentialRow[];
+  expert_certificates?: ExpertCertificateRow[];
 };
 
 function storePath() {
@@ -107,6 +139,9 @@ function emptyStore(): StoreData {
     lesson_task_progress: [],
     diagnostic_attempts: [],
     diagnostic_waivers: [],
+    user_achievements: [],
+    external_credentials: [],
+    expert_certificates: [],
   };
 }
 
@@ -119,6 +154,9 @@ function readStore(): StoreData {
   if (!data.lesson_task_progress) data.lesson_task_progress = [];
   if (!data.diagnostic_attempts) data.diagnostic_attempts = [];
   if (!data.diagnostic_waivers) data.diagnostic_waivers = [];
+  if (!data.user_achievements) data.user_achievements = [];
+  if (!data.external_credentials) data.external_credentials = [];
+  if (!data.expert_certificates) data.expert_certificates = [];
   return data;
 }
 
@@ -439,6 +477,139 @@ export async function localGetDiagnosticWaivers(userId: string) {
       .filter((row) => row.user_id === userId)
       .map((row) => row.pathway_week_id),
   );
+}
+
+export async function localGetUserAchievements(userId: string) {
+  return (readStore().user_achievements ?? [])
+    .filter((row) => row.user_id === userId)
+    .sort((a, b) => a.earned_at.localeCompare(b.earned_at));
+}
+
+export async function localGetPendingAchievements(userId: string) {
+  return (await localGetUserAchievements(userId)).filter((row) => !row.celebrated_at);
+}
+
+export async function localUpsertAchievements(
+  userId: string,
+  awards: Array<{
+    achievement_id: string;
+    source_type: string;
+    source_ref: string | null;
+    evidence: Record<string, unknown>;
+  }>,
+) {
+  const data = readStore();
+  data.user_achievements = data.user_achievements ?? [];
+  const inserted: LocalUserAchievementRow[] = [];
+  for (const award of awards) {
+    if (
+      data.user_achievements.some(
+        (row) => row.user_id === userId && row.achievement_id === award.achievement_id,
+      )
+    ) {
+      continue;
+    }
+    const row: LocalUserAchievementRow = {
+      id: randomUUID(),
+      user_id: userId,
+      achievement_id: award.achievement_id,
+      source_type: award.source_type,
+      source_ref: award.source_ref,
+      evidence: award.evidence,
+      earned_at: new Date().toISOString(),
+      celebrated_at: null,
+    };
+    data.user_achievements.push(row);
+    inserted.push(row);
+  }
+  writeStore(data);
+  return inserted;
+}
+
+export async function localMarkAchievementsCelebrated(userId: string, achievementIds: string[]) {
+  const data = readStore();
+  const idSet = new Set(achievementIds);
+  for (const row of data.user_achievements ?? []) {
+    if (row.user_id === userId && idSet.has(row.achievement_id) && !row.celebrated_at) {
+      row.celebrated_at = new Date().toISOString();
+    }
+  }
+  writeStore(data);
+}
+
+export async function localGetExternalCredential(userId: string, provider: string) {
+  return (
+    (readStore().external_credentials ?? []).find(
+      (row) => row.user_id === userId && row.provider === provider,
+    ) ?? null
+  );
+}
+
+export async function localSaveExternalCredential(
+  userId: string,
+  credential: {
+    provider: string;
+    credential_id: string;
+    issued_on: string;
+    notes: string | null;
+  },
+) {
+  const data = readStore();
+  data.external_credentials = data.external_credentials ?? [];
+  const existing = data.external_credentials.findIndex(
+    (row) => row.user_id === userId && row.provider === credential.provider,
+  );
+  const row: ExternalCredentialRow = {
+    id: existing >= 0 ? data.external_credentials[existing].id : randomUUID(),
+    user_id: userId,
+    provider: credential.provider,
+    credential_id: credential.credential_id,
+    issued_on: credential.issued_on,
+    attested_at: new Date().toISOString(),
+    notes: credential.notes,
+  };
+  if (existing >= 0) data.external_credentials[existing] = row;
+  else data.external_credentials.push(row);
+  writeStore(data);
+  return row;
+}
+
+export async function localGetExpertCertificate(userId: string) {
+  return (readStore().expert_certificates ?? []).find((row) => row.user_id === userId) ?? null;
+}
+
+export async function localGetExpertCertificateById(certificateId: string) {
+  return (readStore().expert_certificates ?? []).find((row) => row.id === certificateId) ?? null;
+}
+
+export async function localIssueExpertCertificate(
+  userId: string,
+  recipientName: string,
+  pdHours: number,
+) {
+  const data = readStore();
+  data.expert_certificates = data.expert_certificates ?? [];
+  const existing = data.expert_certificates.find((row) => row.user_id === userId);
+  if (existing) return existing;
+  const row: ExpertCertificateRow = {
+    id: randomUUID(),
+    user_id: userId,
+    recipient_name: recipientName,
+    issued_at: new Date().toISOString(),
+    pd_hours: pdHours,
+  };
+  data.expert_certificates.push(row);
+  writeStore(data);
+  return row;
+}
+
+export async function localBestQuizScores(userId: string) {
+  const map = new Map<string, number>();
+  for (const row of (readStore().quiz_attempts ?? []).filter((attempt) => attempt.user_id === userId)) {
+    const current = map.get(row.scope) ?? 0;
+    if (row.score_pct > current) map.set(row.scope, row.score_pct);
+  }
+  return map;
 }
 
 export async function localGetUserCourseStartDate(userId: string): Promise<Date | null> {

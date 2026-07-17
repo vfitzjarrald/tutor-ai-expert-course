@@ -136,3 +136,15 @@ export function ChevronDownIcon(props: IconProps) {
     </svg>
   );
 }
+
+export function TrophyIcon(props: IconProps) {
+  return (
+    <svg {...baseProps(props)}>
+      <path d="M8 4h8v3a4 4 0 0 1-8 0V4Z" />
+      <path d="M8 5H5.5A2.5 2.5 0 0 0 5.5 10H8" />
+      <path d="M16 5h2.5A2.5 2.5 0 0 1 18.5 10H16" />
+      <path d="M10 14h4v2.5a2 2 0 0 1-2 2h0a2 2 0 0 1-2-2V14Z" />
+      <path d="M8 20h8" />
+    </svg>
+  );
+}

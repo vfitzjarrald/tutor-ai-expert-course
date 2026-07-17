@@ -217,3 +217,31 @@ h4 {
     @apply bg-surface text-text-muted;
   }
 }
+
+@media print {
+  body.has-chrome {
+    padding-top: 0 !important;
+  }
+
+  header,
+  footer,
+  .print\:hidden {
+    display: none !important;
+  }
+
+  main.container-app {
+    width: 100% !important;
+    max-width: none !important;
+    padding: 0 !important;
+  }
+
+  .certificate-sheet {
+    box-shadow: none !important;
+    border-radius: 0 !important;
+  }
+
+  @page {
+    size: landscape;
+    margin: 0.4in;
+  }
+}
