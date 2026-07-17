@@ -31,7 +31,7 @@ export default async function ExpertCertificatePage() {
     <div>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3 print:hidden">
         <div>
-          <p className="page-hero-step">VPF AI Expert credential</p>
+          <p className="page-hero-step">AI Expert credential</p>
           <h1 className="text-2xl text-heading">Certificate</h1>
         </div>
         <div className="flex flex-wrap gap-3">
@@ -47,7 +47,7 @@ export default async function ExpertCertificatePage() {
           <div className="flex flex-wrap items-start justify-between gap-6">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.25em] text-primary">
-                VPF AI Expert
+                AI Expert
               </p>
               <h2 className="mt-3 text-3xl font-semibold tracking-tight text-heading md:text-4xl">
                 Certificate of Achievement

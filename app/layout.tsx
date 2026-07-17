@@ -6,7 +6,7 @@ import { getPendingCelebrations, syncUserAchievements } from "@/lib/achievements
 import { getSession } from "@/lib/auth";
 
 export const metadata: Metadata = {
-  title: "VPF AI Expert",
+  title: "AI Expert",
   description: "Recognized Expert Fast Track — personal multi-user portal for the tutor-based AI expert curriculum.",
 };
 

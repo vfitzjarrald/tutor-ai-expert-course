@@ -96,14 +96,14 @@ function BrandMark({ compact = false }: { compact?: boolean }) {
     <Link href="/" className="flex min-w-0 items-center gap-2.5 hover:opacity-90">
       <Image
         src="/vpf-icon.png"
-        alt="VPF AI Expert"
+        alt="AI Expert"
         width={compact ? 36 : 40}
         height={compact ? 36 : 40}
         className="h-9 w-9 rounded-xl object-cover shadow-sm sm:h-10 sm:w-10"
         priority
       />
       <div className="min-w-0">
-        <p className="truncate text-base font-semibold tracking-tight text-heading sm:text-lg">VPF AI Expert</p>
+        <p className="truncate text-base font-semibold tracking-tight text-heading sm:text-lg">AI Expert</p>
         <p className="hidden truncate text-[11px] text-text-muted sm:block">Recognized Expert Fast Track</p>
       </div>
     </Link>
@@ -232,7 +232,7 @@ export function SiteFooter() {
           className="h-10 w-10 rounded-xl object-cover"
         />
         <div>
-          <p className="text-sm font-semibold">VPF AI Expert</p>
+          <p className="text-sm font-semibold">AI Expert</p>
           <p className="mt-1 text-sm text-white/70">Recognized Expert Fast Track · Personal learning portal</p>
         </div>
       </div>

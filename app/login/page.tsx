@@ -19,7 +19,7 @@ export default async function LoginPage() {
       <div className="mb-8 flex justify-center sm:justify-start">
         <Image
           src="/vpf-logo.png"
-          alt="VPF AI Expert"
+          alt="AI Expert"
           width={360}
           height={200}
           className="h-auto w-full max-w-sm object-contain"
@@ -29,7 +29,7 @@ export default async function LoginPage() {
       <div className="auth-gate-wrap">
         <div>
           <PageHero
-            eyebrow="VPF AI Expert"
+            eyebrow="AI Expert"
             title="Sign in to your Fast Track"
             description="Sign in with the username and password issued for your account. Progress and notes sync across your devices."
           />
