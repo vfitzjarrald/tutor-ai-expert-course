@@ -3,12 +3,15 @@
 import { useActionState, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
+  submitDiagnosticAction,
   submitQuizAction,
   toggleGateItemAction,
   toggleLessonTaskAction,
   type ActionResult,
+  type DiagnosticActionResult,
 } from "@/app/actions";
 import type { QuizQuestion, QuizScope } from "@/lib/checks";
+import type { PublicDiagnosticQuestion } from "@/lib/diagnostics";
 import type { DayChecklistItem } from "@/lib/day-checklist";
 import type { GateItem } from "@/lib/gates";
 
@@ -67,6 +70,76 @@ export function QuizForm({
       </div>
       {state?.ok ? (
         <div className="border border-primary/30 bg-primary/5 p-4 text-sm text-heading">{state.message}</div>
+      ) : null}
+      {state && !state.ok ? <p className="text-sm text-red-600">{state.error}</p> : null}
+    </form>
+  );
+}
+
+export function DiagnosticForm({
+  phase,
+  questions,
+  isReassessment,
+}: {
+  phase: number;
+  questions: PublicDiagnosticQuestion[];
+  isReassessment: boolean;
+}) {
+  const router = useRouter();
+  const [state, formAction, pending] = useActionState(
+    submitDiagnosticAction,
+    null as DiagnosticActionResult | null,
+  );
+
+  return (
+    <form
+      action={async (formData) => {
+        await formAction(formData);
+        router.refresh();
+      }}
+      className="space-y-6"
+    >
+      <input type="hidden" name="phase" value={phase} />
+      {questions.map((question, index) => (
+        <fieldset key={question.id} className="card">
+          <legend className="mb-3 text-sm font-semibold text-heading">
+            {index + 1}. {question.stem}
+          </legend>
+          <div className="space-y-2">
+            {question.choices.map((choice) => (
+              <label key={choice.letter} className="flex cursor-pointer items-start gap-2 text-sm">
+                <input
+                  type="radio"
+                  name={`answer-${question.id}`}
+                  value={choice.letter}
+                  className="mt-1"
+                  required
+                />
+                <span>
+                  <span className="font-semibold text-heading">{choice.letter})</span>{" "}
+                  {choice.text}
+                </span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
+      ))}
+      <div className="flex flex-wrap items-center gap-3">
+        <button type="submit" className="btn-primary" disabled={pending}>
+          {pending
+            ? "Scoring…"
+            : isReassessment
+              ? "Submit growth reassessment"
+              : "Save baseline and apply waivers"}
+        </button>
+        <span className="text-xs text-text-muted">
+          Skill waiver threshold: ≥80% · gates are never waived
+        </span>
+      </div>
+      {state?.ok ? (
+        <div className="rounded border border-primary/30 bg-primary/5 p-4 text-sm text-heading">
+          {state.message}
+        </div>
       ) : null}
       {state && !state.ok ? <p className="text-sm text-red-600">{state.error}</p> : null}
     </form>

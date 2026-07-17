@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import {
   clearSessionCookie,
   setSessionCookie,
@@ -190,6 +191,95 @@ export async function submitQuizAction(
   } catch (err) {
     console.error(err);
     return { ok: false, error: "Could not save quiz attempt." };
+  }
+}
+
+export type DiagnosticActionResult =
+  | {
+      ok: true;
+      message: string;
+      scorePct: number;
+      masteredSkillIds: string[];
+      attemptKind: "baseline" | "reassessment";
+    }
+  | { ok: false; error: string };
+
+export async function submitDiagnosticAction(
+  _prev: DiagnosticActionResult | null,
+  formData: FormData,
+): Promise<DiagnosticActionResult> {
+  try {
+    const session = await requireSession();
+    const phase = Number(formData.get("phase"));
+    if (!Number.isInteger(phase) || phase < 1 || phase > 7) {
+      return { ok: false, error: "Invalid diagnostic phase." };
+    }
+    const {
+      eligibleWaiverSkillIds,
+      getDiagnosticQuestions,
+      loadDiagnosticBank,
+      scoreDiagnostic,
+    } = await import("@/lib/diagnostics");
+    const {
+      getDiagnosticAttempts,
+      saveDiagnosticAttempt,
+    } = await import("@/lib/diagnostic-progress");
+    const attempts = await getDiagnosticAttempts(session.id, phase);
+    const hasBaseline = attempts.some((attempt) => attempt.attemptKind === "baseline");
+    const queue = await (await import("@/lib/progress")).getLearnerQueue(session.id, 1);
+    const phaseStarted = queue.states.some(
+      (state) => state.node.phase === phase && state.completed,
+    );
+    if (!hasBaseline && queue.diagnosticDue?.phase !== phase && !phaseStarted) {
+      return { ok: false, error: "Complete the prior phase before taking this diagnostic." };
+    }
+    const attemptKind = hasBaseline ? "reassessment" : "baseline";
+    const questions = getDiagnosticQuestions(phase, attemptKind);
+    if (!questions.length) return { ok: false, error: "Diagnostic questions are unavailable." };
+
+    const answers: Record<string, string> = {};
+    for (const question of questions) {
+      const answer = String(formData.get(`answer-${question.id}`) ?? "");
+      if (answer) answers[question.id] = answer;
+    }
+    if (Object.keys(answers).length !== questions.length) {
+      return { ok: false, error: "Answer every question before submitting." };
+    }
+
+    const score = scoreDiagnostic(questions, answers);
+    const waiverSkillIds =
+      attemptKind === "baseline"
+        ? eligibleWaiverSkillIds(phase, score.masteredSkillIds)
+        : [];
+    await saveDiagnosticAttempt(
+      session.id,
+      phase,
+      attemptKind,
+      loadDiagnosticBank().version,
+      score,
+      answers,
+      waiverSkillIds,
+    );
+    revalidatePath("/");
+    revalidatePath("/diagnostics");
+    revalidatePath(`/diagnostics/${phase}`);
+    revalidatePath("/schedule");
+    return {
+      ok: true,
+      message:
+        attemptKind === "baseline"
+          ? `${score.scorePct}% baseline saved. ${waiverSkillIds.length} skill waiver${waiverSkillIds.length === 1 ? "" : "s"} earned.`
+          : `${score.scorePct}% reassessment saved.`,
+      scorePct: score.scorePct,
+      masteredSkillIds: waiverSkillIds,
+      attemptKind,
+    };
+  } catch (error) {
+    if (error instanceof Error && error.message === "BASELINE_EXISTS") {
+      return { ok: false, error: "Your baseline is already saved. Refresh to take a reassessment." };
+    }
+    console.error(error);
+    return { ok: false, error: "Could not save the diagnostic." };
   }
 }
 

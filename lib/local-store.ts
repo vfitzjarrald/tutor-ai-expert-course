@@ -57,6 +57,31 @@ type LessonTaskRow = {
   updated_at: string;
 };
 
+export type LocalDiagnosticAttemptRow = {
+  id: string;
+  user_id: string;
+  phase: number;
+  attempt_kind: "baseline" | "reassessment";
+  bank_version: number;
+  score_pct: number;
+  answers: Record<string, string>;
+  skill_scores: Array<{
+    skillId: string;
+    correct: number;
+    total: number;
+    scorePct: number;
+    mastered: boolean;
+  }>;
+  created_at: string;
+};
+
+type DiagnosticWaiverRow = {
+  user_id: string;
+  pathway_week_id: string;
+  source_attempt_id: string;
+  awarded_at: string;
+};
+
 type StoreData = {
   users: StoreUser[];
   progress: ProgressRow[];
@@ -64,6 +89,8 @@ type StoreData = {
   quiz_attempts?: QuizAttemptRow[];
   gate_items?: GateItemRow[];
   lesson_task_progress?: LessonTaskRow[];
+  diagnostic_attempts?: LocalDiagnosticAttemptRow[];
+  diagnostic_waivers?: DiagnosticWaiverRow[];
 };
 
 function storePath() {
@@ -78,6 +105,8 @@ function emptyStore(): StoreData {
     quiz_attempts: [],
     gate_items: [],
     lesson_task_progress: [],
+    diagnostic_attempts: [],
+    diagnostic_waivers: [],
   };
 }
 
@@ -88,6 +117,8 @@ function readStore(): StoreData {
   if (!data.quiz_attempts) data.quiz_attempts = [];
   if (!data.gate_items) data.gate_items = [];
   if (!data.lesson_task_progress) data.lesson_task_progress = [];
+  if (!data.diagnostic_attempts) data.diagnostic_attempts = [];
+  if (!data.diagnostic_waivers) data.diagnostic_waivers = [];
   return data;
 }
 
@@ -352,6 +383,64 @@ export async function localSetLessonTask(
   writeStore(data);
 }
 
+export async function localSaveDiagnosticAttempt(
+  userId: string,
+  attempt: Omit<LocalDiagnosticAttemptRow, "id" | "user_id" | "created_at">,
+  waiverSkillIds: string[],
+) {
+  const data = readStore();
+  data.diagnostic_attempts = data.diagnostic_attempts ?? [];
+  data.diagnostic_waivers = data.diagnostic_waivers ?? [];
+  if (
+    attempt.attempt_kind === "baseline" &&
+    data.diagnostic_attempts.some(
+      (row) =>
+        row.user_id === userId &&
+        row.phase === attempt.phase &&
+        row.attempt_kind === "baseline",
+    )
+  ) {
+    throw new Error("BASELINE_EXISTS");
+  }
+  const row: LocalDiagnosticAttemptRow = {
+    ...attempt,
+    id: randomUUID(),
+    user_id: userId,
+    created_at: new Date().toISOString(),
+  };
+  data.diagnostic_attempts.push(row);
+  for (const skillId of waiverSkillIds) {
+    if (
+      !data.diagnostic_waivers.some(
+        (waiver) => waiver.user_id === userId && waiver.pathway_week_id === skillId,
+      )
+    ) {
+      data.diagnostic_waivers.push({
+        user_id: userId,
+        pathway_week_id: skillId,
+        source_attempt_id: row.id,
+        awarded_at: row.created_at,
+      });
+    }
+  }
+  writeStore(data);
+  return row;
+}
+
+export async function localGetDiagnosticAttempts(userId: string, phase?: number) {
+  return (readStore().diagnostic_attempts ?? [])
+    .filter((row) => row.user_id === userId && (phase == null || row.phase === phase))
+    .sort((a, b) => a.created_at.localeCompare(b.created_at));
+}
+
+export async function localGetDiagnosticWaivers(userId: string) {
+  return new Set(
+    (readStore().diagnostic_waivers ?? [])
+      .filter((row) => row.user_id === userId)
+      .map((row) => row.pathway_week_id),
+  );
+}
+
 export async function localGetUserCourseStartDate(userId: string): Promise<Date | null> {
   const data = readStore();
   const user = data.users.find((u) => u.id === userId);
@@ -378,6 +467,12 @@ export async function localResetLearnerProgress(userId: string, opts: { keepNote
   data.quiz_attempts = (data.quiz_attempts ?? []).filter((a) => a.user_id !== userId);
   data.gate_items = (data.gate_items ?? []).filter((g) => g.user_id !== userId);
   data.lesson_task_progress = (data.lesson_task_progress ?? []).filter(
+    (row) => row.user_id !== userId,
+  );
+  data.diagnostic_attempts = (data.diagnostic_attempts ?? []).filter(
+    (row) => row.user_id !== userId,
+  );
+  data.diagnostic_waivers = (data.diagnostic_waivers ?? []).filter(
     (row) => row.user_id !== userId,
   );
   if (!opts.keepNotes) {

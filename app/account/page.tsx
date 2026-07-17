@@ -30,13 +30,23 @@ export default async function AccountPage() {
       <PageHero
         eyebrow="Your account"
         title={session.displayName || session.username}
-        description={`Recognized Expert Fast Track · about ${queue.config.targetWeeks} weeks. Progression follows completed lessons and placement, not the calendar.`}
+        description={`Recognized Expert Fast Track · about ${queue.config.targetWeeks} weeks. Progression follows completed lessons and phase diagnostics, not the calendar.`}
       />
 
       <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="card">
           <p className="text-xs font-semibold uppercase tracking-wide text-text-muted">Current task</p>
-          {queue.today ? (
+          {queue.diagnosticDue ? (
+            <>
+              <p className="mt-2 text-lg text-heading">Phase {queue.diagnosticDue.phase} diagnostic</p>
+              <Link
+                href={`/diagnostics/${queue.diagnosticDue.phase}`}
+                className="nav-link mt-2 inline-block text-sm"
+              >
+                Start diagnostic
+              </Link>
+            </>
+          ) : queue.today ? (
             <>
               <p className="mt-2 text-lg text-heading">
                 Week {padWeek(queue.today.week)} · Day {queue.today.day}
@@ -56,10 +66,11 @@ export default async function AccountPage() {
           <p className="text-xs font-semibold uppercase tracking-wide text-text-muted">Progress</p>
           <p className="mt-2 text-2xl text-heading">{queue.stats.percent}%</p>
           <p className="text-sm">
-            {queue.stats.completed} done · {queue.stats.remaining} remaining
+            {queue.stats.completedLessons} completed · {queue.stats.waivedLessons} waived
           </p>
-          <Link href="/placement" className="nav-link mt-2 inline-block text-sm">
-            Placement checks
+          <p className="text-xs text-text-muted">{queue.stats.remaining} remaining</p>
+          <Link href="/diagnostics" className="nav-link mt-2 inline-block text-sm">
+            Diagnostics & growth
           </Link>
         </div>
         <div className="card">
@@ -90,7 +101,7 @@ export default async function AccountPage() {
         <p className="mt-2 text-sm">
           Clears day completion checkmarks, quiz attempts, and phase gate checklists so{" "}
           <strong className="text-heading">My AI Day</strong> returns to the first Fast Track lesson.
-          Placement scores are cleared, gates stay mandatory, and the calendar projection resets to today.
+          Diagnostic baselines and waivers are cleared, gates stay mandatory, and the calendar projection resets to today.
         </p>
         <p className="mt-2 text-sm font-semibold text-heading">Your day notes are kept.</p>
         <div className="mt-6">

@@ -35,6 +35,7 @@ export default async function HomePage() {
   const queue = await getLearnerQueue(session.id, 2);
   const todayPos = queue.today;
   const tomorrowPos = queue.tomorrow;
+  const diagnosticDue = queue.diagnosticDue;
 
   const todayWeek = todayPos ? loadWeek(todayPos.week) : null;
   const todayDay = todayWeek?.days.find((d) => d.day === todayPos?.day);
@@ -53,7 +54,7 @@ export default async function HomePage() {
       : new Map<string, boolean>();
   const news = await getAiNews(6);
 
-  const focusWeek = todayPos?.week ?? 78;
+  const focusWeek = todayPos?.week ?? queue.lessonAfterDiagnostic?.week ?? 78;
   const phase = getPhaseForWeek(focusWeek);
   const quizScope = phase.id === 7 ? "all" : (`phase-${phase.id}` as const);
   const quiz = await getLatestQuizScore(session.id, quizScope);
@@ -90,10 +91,11 @@ export default async function HomePage() {
                   <p className="text-xs font-semibold uppercase tracking-wide text-text-muted">Progress</p>
                   <p className="mt-1 text-2xl text-heading">{queue.stats.percent}%</p>
                   <p className="text-sm">
-                    {queue.stats.completed} done · {queue.stats.remaining} remaining
+                    {queue.stats.completedLessons} completed · {queue.stats.waivedLessons} waived
                   </p>
-                  <Link href="/placement" className="nav-link mt-2 inline-block text-sm">
-                    Test out of foundations
+                  <p className="text-xs text-text-muted">{queue.stats.remaining} remaining</p>
+                  <Link href="/diagnostics" className="nav-link mt-2 inline-block text-sm">
+                    Diagnostics & growth
                   </Link>
                 </div>
               </div>
@@ -159,7 +161,24 @@ export default async function HomePage() {
             </div>
           </div>
 
-          {queue.courseComplete ? (
+          {diagnosticDue ? (
+            <div className="card border-primary/30 bg-gradient-to-br from-white via-primary/5 to-accent/5">
+              <p className="page-hero-step">Required before Phase {diagnosticDue.phase}</p>
+              <h2 className="text-xl text-heading">Establish your Phase {diagnosticDue.phase} baseline</h2>
+              <p className="mt-2 text-sm text-text-muted">
+                Demonstrate what you already know before this segment begins. Eligible skills scoring
+                at least 80% are waived; phase gates and expert evidence always remain required.
+              </p>
+              <div className="mt-5 flex flex-wrap gap-3">
+                <Link href={`/diagnostics/${diagnosticDue.phase}`} className="btn-primary">
+                  Start diagnostic
+                </Link>
+                <Link href="/diagnostics" className="btn-secondary">
+                  View diagnostic history
+                </Link>
+              </div>
+            </div>
+          ) : queue.courseComplete ? (
             <div className="card">
               <h2 className="text-xl text-heading">All lessons complete</h2>
               <p className="mt-2 text-sm">

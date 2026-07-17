@@ -18,7 +18,7 @@ export default async function SchedulePage() {
   const pathway = getPathwayNodes();
   const requiredWeeks = new Set(pathway.required.map((node) => node.week));
   const optionalWeeks = new Set(pathway.optional.map((node) => node.week));
-  const currentWeek = queue.today?.week ?? null;
+  const currentWeek = queue.today?.week ?? queue.lessonAfterDiagnostic?.week ?? null;
   const nextTask = queue.today;
 
   return (
@@ -29,7 +29,15 @@ export default async function SchedulePage() {
         description={`${pathway.required.length} required lessons target recognized-expert status in about ${pathway.config.targetWeeks} weeks. All 78 original weeks remain available.`}
       />
 
-      {nextTask ? (
+      {queue.diagnosticDue ? (
+        <div className="card mb-8 border-primary/30">
+          <p className="page-hero-step">Next task · Phase {queue.diagnosticDue.phase}</p>
+          <p className="text-heading">Complete the required phase diagnostic</p>
+          <Link href={`/diagnostics/${queue.diagnosticDue.phase}`} className="btn-primary mt-4 inline-block">
+            Start diagnostic
+          </Link>
+        </div>
+      ) : nextTask ? (
         <div className="card mb-8">
           <p className="page-hero-step">Next task</p>
           <p className="text-heading">
@@ -83,7 +91,7 @@ export default async function SchedulePage() {
                     isRequired &&
                     pathwayState.length > 0 &&
                     pathwayState.every(
-                      (state) => state.locked && !state.completed && !state.skippedByPlacement,
+                      (state) => state.locked && !state.completed && !state.waivedByDiagnostic,
                     );
                   return (
                     <li
@@ -102,7 +110,15 @@ export default async function SchedulePage() {
                           </span>
                         ) : null}
                         <span className="rounded border border-border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-text-muted">
-                          {isRequired ? (isLocked ? "Locked" : "Required") : isOptional ? "Depth · optional" : "Full track"}
+                          {isRequired
+                            ? pathwayState.some((state) => state.waivedByDiagnostic)
+                              ? "Waived · diagnostic"
+                              : isLocked
+                                ? "Locked"
+                                : "Required"
+                            : isOptional
+                              ? "Depth · optional"
+                              : "Full track"}
                         </span>
                         {isCurrent && nextTask ? (
                           <Link

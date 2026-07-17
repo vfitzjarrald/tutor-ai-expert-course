@@ -156,13 +156,13 @@ export type PathwayProgress = Map<string, { completed: boolean }>;
 export type PathwayNodeState = {
   node: PathwayNode;
   completed: boolean;
-  skippedByPlacement: boolean;
+  waivedByDiagnostic: boolean;
   locked: boolean;
 };
 
 export function evaluateRequiredPath(
   progress: PathwayProgress,
-  placementScores: Map<number, number>,
+  waivedWeekIds: Set<string>,
   repoRoot = process.cwd(),
 ) {
   const { required, optional, config } = getPathwayNodes(repoRoot);
@@ -171,27 +171,30 @@ export function evaluateRequiredPath(
 
   for (const node of required) {
     const completed = Boolean(progress.get(`${node.week}-${node.day}`)?.completed);
-    const skippedByPlacement =
-      node.skippable &&
-      !node.gate &&
-      node.phase <= 6 &&
-      (placementScores.get(node.phase) ?? 0) >= config.placementThreshold;
+    const waivedByDiagnostic =
+      node.skippable && !node.gate && node.phase <= 6 && waivedWeekIds.has(node.weekId);
     const locked = !node.prereqs.every((id) => done.has(id));
-    if (completed || skippedByPlacement) done.add(node.id);
-    states.push({ node, completed, skippedByPlacement, locked });
+    if (completed || waivedByDiagnostic) done.add(node.id);
+    states.push({ node, completed, waivedByDiagnostic, locked });
   }
 
-  const remaining = states.filter((state) => !state.completed && !state.skippedByPlacement);
+  const remaining = states.filter((state) => !state.completed && !state.waivedByDiagnostic);
   const actionable = remaining.filter((state) => !state.locked);
   const today = actionable[0]?.node ?? null;
   const todayIndex = today ? remaining.findIndex((state) => state.node.id === today.id) : -1;
-  const completedRequired = states.filter((state) => state.completed || state.skippedByPlacement).length;
+  const completedLessons = states.filter((state) => state.completed).length;
+  const waivedLessons = states.filter(
+    (state) => state.waivedByDiagnostic && !state.completed,
+  ).length;
+  const completedRequired = completedLessons + waivedLessons;
   return {
     states,
     actionable,
     today,
     tomorrow: todayIndex >= 0 ? remaining[todayIndex + 1]?.node ?? null : null,
     completedRequired,
+    completedLessons,
+    waivedLessons,
     requiredTotal: required.length,
     remainingRequired: required.length - completedRequired,
     percent: Math.round((completedRequired / required.length) * 1000) / 10,

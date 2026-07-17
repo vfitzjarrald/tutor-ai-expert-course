@@ -16,7 +16,7 @@ import {
   type LessonPosition,
   remainingLessons,
 } from "./schedule";
-import { getLatestQuizScores } from "./learning";
+import { getDiagnosticSummaries, getDiagnosticWaivers } from "./diagnostic-progress";
 import { evaluateRequiredPath } from "./pathway";
 import { setUserCourseStartDate } from "./users";
 
@@ -156,27 +156,54 @@ export function progressKey(week: number, day: number) {
   return `${week}-${day}`;
 }
 
+export function shouldRequirePhaseDiagnostic(
+  nextPhase: number | null,
+  hasBaseline: boolean,
+  phaseStarted: boolean,
+) {
+  return nextPhase != null && !hasBaseline && !phaseStarted;
+}
+
 export async function getLearnerQueue(userId: string, limit = 2) {
-  const map = await getProgressMap(userId);
-  const quizScores = await getLatestQuizScores(userId);
-  const placements = new Map<number, number>();
-  for (let phase = 1; phase <= 6; phase++) {
-    const score = quizScores.get(`placement-phase-${phase}`);
-    if (score) placements.set(phase, score.scorePct);
-  }
-  const pathway = evaluateRequiredPath(map, placements);
-  const incomplete = pathway.actionable.slice(0, limit).map((state) => state.node);
+  const [map, waivers, diagnostics] = await Promise.all([
+    getProgressMap(userId),
+    getDiagnosticWaivers(userId),
+    getDiagnosticSummaries(userId),
+  ]);
+  const pathway = evaluateRequiredPath(map, waivers);
+  const lessonAfterDiagnostic = pathway.today;
+  const nextPhase = lessonAfterDiagnostic?.phase ?? null;
+  const phaseStarted =
+    nextPhase != null &&
+    pathway.states.some(
+      (state) => state.node.phase === nextPhase && state.completed,
+    );
+  const diagnosticDue = shouldRequirePhaseDiagnostic(
+    nextPhase,
+    Boolean(nextPhase != null && diagnostics.get(nextPhase)?.baseline),
+    phaseStarted,
+  )
+      ? { phase: nextPhase }
+      : null;
+  const incomplete = diagnosticDue
+    ? []
+    : pathway.actionable.slice(0, limit).map((state) => state.node);
   return {
-    today: pathway.today,
-    tomorrow: pathway.tomorrow,
+    today: diagnosticDue ? null : pathway.today,
+    tomorrow: diagnosticDue ? null : pathway.tomorrow,
+    lessonAfterDiagnostic,
+    diagnosticDue,
     incomplete,
     courseComplete: pathway.courseComplete,
     states: pathway.states,
     optional: pathway.optional,
     config: pathway.config,
-    placements,
+    diagnostics,
+    waivers,
     stats: {
       completed: pathway.completedRequired,
+      completedLessons: pathway.completedLessons,
+      waivedLessons: pathway.waivedLessons,
       total: pathway.requiredTotal,
       remaining: pathway.remainingRequired,
       percent: pathway.percent,
@@ -195,6 +222,7 @@ export async function resetLearnerProgress(userId: string, opts: { keepNotes: bo
   await sql`DELETE FROM quiz_attempts WHERE user_id = ${userId}`;
   await sql`DELETE FROM gate_items WHERE user_id = ${userId}`;
   await sql`DELETE FROM lesson_task_progress WHERE user_id = ${userId}`;
+  await sql`DELETE FROM diagnostic_attempts WHERE user_id = ${userId}`;
   if (!opts.keepNotes) {
     await sql`DELETE FROM day_notes WHERE user_id = ${userId}`;
   }

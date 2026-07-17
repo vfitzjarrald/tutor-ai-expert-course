@@ -14,19 +14,23 @@ assert.strictEqual(required.length, 135);
 assert.strictEqual(optional.length, 15);
 assert.strictEqual(config.targetWeeks, 30);
 
-const empty = evaluateRequiredPath(new Map(), new Map());
+const empty = evaluateRequiredPath(new Map(), new Set());
 assert.strictEqual(empty.today?.week, 1);
 assert.strictEqual(empty.today?.day, 1);
 assert.strictEqual(empty.tomorrow?.day, 2);
 
-const phaseOnePlacement = new Map([[1, 80]]);
-const placed = evaluateRequiredPath(new Map(), phaseOnePlacement);
-assert.strictEqual(placed.today?.week, 8, "Placement must skip foundations but not the Phase 1 gate");
-assert.strictEqual(placed.today?.day, 1);
+const phaseOneWaivers = new Set(["rag-foundations", "rag-pipeline"]);
+const waived = evaluateRequiredPath(new Map(), phaseOneWaivers);
+assert.strictEqual(waived.today?.week, 8, "Skill waivers must not skip the Phase 1 gate");
+assert.strictEqual(waived.today?.day, 1);
+assert.strictEqual(waived.waivedLessons, 10);
+
+const partialWaiver = evaluateRequiredPath(new Map(), new Set(["rag-foundations"]));
+assert.strictEqual(partialWaiver.today?.week, 7, "Only the mastered skill should be waived");
 
 const completed = new Map<string, { completed: boolean }>() as PathwayProgress;
 for (const node of required) completed.set(`${node.week}-${node.day}`, { completed: true });
-const finished = evaluateRequiredPath(completed, new Map());
+const finished = evaluateRequiredPath(completed, new Set());
 assert.strictEqual(finished.courseComplete, true);
 assert.strictEqual(finished.today, null);
 

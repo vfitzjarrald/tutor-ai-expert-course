@@ -22,7 +22,7 @@ import {
 const primaryLinks = [
   { href: "/", label: "My AI Day", icon: SparkIcon },
   { href: "/schedule", label: "Schedule", icon: CalendarIcon },
-  { href: "/placement", label: "Placement", icon: TargetIcon },
+  { href: "/diagnostics", label: "Diagnostics", icon: TargetIcon },
   { href: "/resources", label: "Resources", icon: BookIcon },
 ];
 

@@ -4,6 +4,7 @@ import { PageHero } from "@/components/SiteChrome";
 import { getSession } from "@/lib/auth";
 import { PHASE_GATE_THRESHOLD, EXPERT_THRESHOLD, questionsForScope } from "@/lib/checks";
 import { gatesByPhase } from "@/lib/gates";
+import { getDiagnosticSummaries } from "@/lib/diagnostic-progress";
 import { getGateStates, getLatestQuizScores } from "@/lib/learning";
 import { PHASES } from "@/lib/schedule";
 
@@ -18,6 +19,7 @@ export default async function GatesPage() {
   const states: Record<string, boolean> = {};
   for (const [k, v] of statesMap) states[k] = v;
   const scores = await getLatestQuizScores(session.id);
+  const diagnostics = await getDiagnosticSummaries(session.id);
 
   return (
     <div>
@@ -37,6 +39,7 @@ export default async function GatesPage() {
           const qCount = questionsForScope(quizScope).length;
           const quizMet = quizScore != null && quizScore.scorePct >= threshold;
           const doneCount = items.filter((i) => states[`${i.phase}:${i.key}`]).length;
+          const diagnostic = diagnostics.get(phase.id);
 
           return (
             <section key={phase.id} className="card">
@@ -52,6 +55,16 @@ export default async function GatesPage() {
                       ? ` · Quiz ${quizScore ? `${quizScore.scorePct}%` : "not taken"} (need ≥${threshold}%)`
                       : ""}
                   </p>
+                  {diagnostic?.baseline ? (
+                    <p className="mt-1 text-xs text-text-muted">
+                      Diagnostic baseline {diagnostic.baseline.scorePct}%
+                      {diagnostic.latestReassessment
+                        ? ` · latest ${diagnostic.latestReassessment.scorePct}% · growth ${
+                            diagnostic.growth != null && diagnostic.growth > 0 ? "+" : ""
+                          }${diagnostic.growth ?? 0} pts`
+                        : " · growth reassessment available"}
+                    </p>
+                  ) : null}
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {qCount > 0 ? (
@@ -62,6 +75,11 @@ export default async function GatesPage() {
                   <Link href={`/phases/${phase.id}`} className="btn-secondary text-sm">
                     Phase hub
                   </Link>
+                  {diagnostic?.baseline ? (
+                    <Link href={`/diagnostics/${phase.id}`} className="btn-secondary text-sm">
+                      {diagnostic.latestReassessment ? "Reassess growth" : "Measure growth"}
+                    </Link>
+                  ) : null}
                 </div>
               </div>
               <GateChecklist items={items} states={states} />
