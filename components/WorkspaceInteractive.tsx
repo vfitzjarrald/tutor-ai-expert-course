@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState, useTransition } from "react";
+import { useActionState, useEffect, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -10,7 +10,30 @@ import {
   type PlaygroundActionResult,
 } from "@/app/actions";
 import type { LearningTrack } from "@/lib/learning-track";
+import type {
+  WorkspaceGuideLesson,
+  WorkspaceLessonStatus,
+} from "@/lib/workspace-guide";
 import type { PlaygroundRecipe } from "@/lib/workspace-overlays";
+
+function padWeek(week: number): string {
+  return String(week).padStart(2, "0");
+}
+
+function statusLabel(status: WorkspaceLessonStatus): string {
+  switch (status) {
+    case "done":
+      return "Done";
+    case "waived":
+      return "Waived";
+    case "today":
+      return "Today";
+    case "upcoming":
+      return "Up next";
+    case "locked":
+      return "Locked";
+  }
+}
 
 export function TrackSelectionCards({
   current,
@@ -73,22 +96,54 @@ export function TrackSelectionCards({
   );
 }
 
+function StatusBadge({ status }: { status: WorkspaceLessonStatus }) {
+  const styles: Record<WorkspaceLessonStatus, string> = {
+    today: "bg-primary/15 text-primary",
+    upcoming: "bg-accent/15 text-accent",
+    done: "bg-emerald-100 text-emerald-800",
+    waived: "bg-violet-100 text-violet-800",
+    locked: "bg-surface text-text-muted",
+  };
+  return (
+    <span className={`rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${styles[status]}`}>
+      {statusLabel(status)}
+    </span>
+  );
+}
+
 export function WorkspaceEditor({
   initialPath,
   initialBody,
   files,
-  suggestedPaths = [],
+  upNext,
+  phaseLessons,
+  currentPhase,
+  activeLesson,
+  fileStatus,
 }: {
   initialPath: string;
   initialBody: string;
   files: Array<{ path: string; updatedAt: string }>;
-  suggestedPaths?: string[];
+  upNext: WorkspaceGuideLesson[];
+  phaseLessons: WorkspaceGuideLesson[];
+  currentPhase: number | null;
+  activeLesson: WorkspaceGuideLesson | null;
+  fileStatus: Record<string, boolean>;
 }) {
   const router = useRouter();
   const [path, setPath] = useState(initialPath);
   const [body, setBody] = useState(initialBody);
   const [status, setStatus] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const [expanded, setExpanded] = useState<Record<string, boolean>>(() => {
+    const initial: Record<string, boolean> = {};
+    for (const lesson of [...upNext, ...phaseLessons]) {
+      if (lesson.status === "today" || lesson.status === "upcoming") {
+        initial[lesson.nodeId] = true;
+      }
+    }
+    return initial;
+  });
 
   useEffect(() => {
     setPath(initialPath);
@@ -118,26 +173,113 @@ export function WorkspaceEditor({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [body, path]);
 
-  const allPaths = [...new Set([...suggestedPaths, ...files.map((f) => f.path)])].sort();
+  const guidedPaths = useMemo(() => {
+    const set = new Set<string>();
+    for (const lesson of phaseLessons.length ? phaseLessons : upNext) {
+      for (const filePath of lesson.files) set.add(filePath);
+    }
+    for (const lesson of upNext) {
+      for (const filePath of lesson.files) set.add(filePath);
+    }
+    return set;
+  }, [phaseLessons, upNext]);
+
+  const orphanFiles = files.filter((file) => !guidedPaths.has(file.path));
+
+  const placeholder = activeLesson
+    ? `Deliverable: ${activeLesson.deliverable}`
+    : "Write your deliverable here…";
+
+  function renderLessonGroup(lesson: WorkspaceGuideLesson) {
+    const isOpen = expanded[lesson.nodeId] ?? lesson.status === "today";
+    return (
+      <div key={lesson.nodeId} className="rounded border border-border/70">
+        <button
+          type="button"
+          className="flex w-full items-start justify-between gap-2 px-2 py-2 text-left hover:bg-surface"
+          onClick={() =>
+            setExpanded((prev) => ({ ...prev, [lesson.nodeId]: !isOpen }))
+          }
+        >
+          <span className="min-w-0">
+            <span className="block text-xs font-semibold text-heading">
+              W{padWeek(lesson.week)} · D{lesson.day}
+            </span>
+            <span className="block truncate text-[11px] text-text-muted">{lesson.title}</span>
+          </span>
+          <StatusBadge status={lesson.status} />
+        </button>
+        {isOpen ? (
+          <ul className="space-y-0.5 border-t border-border/60 px-1 py-1">
+            {lesson.files.map((filePath) => (
+              <li key={filePath}>
+                <Link
+                  href={`/workspace?path=${encodeURIComponent(filePath)}`}
+                  className={`block truncate rounded px-2 py-1 text-xs ${
+                    filePath === path
+                      ? "bg-primary/10 font-semibold text-heading"
+                      : "text-text hover:bg-surface"
+                  }`}
+                  title={filePath}
+                >
+                  <span className="mr-1 text-[10px] text-text-muted">
+                    {fileStatus[filePath] ? "●" : "○"}
+                  </span>
+                  {filePath.split("/").pop()}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+      </div>
+    );
+  }
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[240px_1fr]">
-      <aside className="card space-y-3">
-        <p className="text-xs font-semibold uppercase tracking-wide text-text-muted">Files</p>
-        <ul className="max-h-[28rem] space-y-1 overflow-auto text-sm">
-          {allPaths.map((filePath) => (
-            <li key={filePath}>
-              <Link
-                href={`/workspace?path=${encodeURIComponent(filePath)}`}
-                className={`block truncate rounded px-2 py-1 ${
-                  filePath === path ? "bg-primary/10 font-semibold text-heading" : "text-text hover:bg-surface"
-                }`}
-              >
-                {filePath}
-              </Link>
-            </li>
-          ))}
-        </ul>
+    <div className="grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
+      <aside className="card max-h-[70vh] space-y-4 overflow-auto">
+        {upNext.length > 0 ? (
+          <div className="space-y-2">
+            <p className="text-xs font-semibold uppercase tracking-wide text-text-muted">Up next</p>
+            <div className="space-y-2">{upNext.map(renderLessonGroup)}</div>
+          </div>
+        ) : null}
+
+        {phaseLessons.length > 0 ? (
+          <div className="space-y-2">
+            <p className="text-xs font-semibold uppercase tracking-wide text-text-muted">
+              {currentPhase != null ? `Phase ${currentPhase}` : "This phase"}
+            </p>
+            <div className="space-y-2">
+              {phaseLessons
+                .filter((lesson) => !upNext.some((entry) => entry.nodeId === lesson.nodeId))
+                .map(renderLessonGroup)}
+            </div>
+          </div>
+        ) : null}
+
+        {orphanFiles.length > 0 ? (
+          <div className="space-y-2">
+            <p className="text-xs font-semibold uppercase tracking-wide text-text-muted">My files</p>
+            <ul className="space-y-1 text-sm">
+              {orphanFiles.map((file) => (
+                <li key={file.path}>
+                  <Link
+                    href={`/workspace?path=${encodeURIComponent(file.path)}`}
+                    className={`block truncate rounded px-2 py-1 ${
+                      file.path === path
+                        ? "bg-primary/10 font-semibold text-heading"
+                        : "text-text hover:bg-surface"
+                    }`}
+                  >
+                    {file.path}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+
         <form
           className="space-y-2 border-t border-border pt-3"
           onSubmit={(event) => {
@@ -165,23 +307,117 @@ export function WorkspaceEditor({
           </button>
         </form>
       </aside>
-      <div className="card space-y-3">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <code className="text-sm text-heading">{path || "Select a file"}</code>
-          <button type="button" className="btn-primary text-xs" disabled={pending || !path} onClick={() => save()}>
-            {pending ? "Saving…" : "Save"}
-          </button>
+
+      <div className="space-y-4">
+        {activeLesson ? (
+          <div className="card space-y-4 border-primary/20 bg-gradient-to-br from-white via-primary/5 to-accent/5">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-primary">
+                  Week {padWeek(activeLesson.week)} · Day {activeLesson.day}
+                </p>
+                <h2 className="mt-1 text-lg font-semibold text-heading">{activeLesson.title}</h2>
+                <p className="mt-1 text-sm text-text-muted">{activeLesson.weekTitle}</p>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <StatusBadge status={activeLesson.status} />
+                <Link
+                  href={`/weeks/${activeLesson.week}/days/${activeLesson.day}`}
+                  className="btn-secondary text-xs"
+                >
+                  Open lesson
+                </Link>
+              </div>
+            </div>
+
+            {activeLesson.objective ? (
+              <p className="text-sm">
+                <span className="font-semibold text-heading">Objective: </span>
+                {activeLesson.objective}
+              </p>
+            ) : null}
+            <p className="text-sm">
+              <span className="font-semibold text-heading">Deliverable: </span>
+              {activeLesson.deliverable}
+            </p>
+
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-text-muted">Lab steps</p>
+              <ol className="mt-2 list-decimal space-y-1.5 pl-5 text-sm">
+                {activeLesson.labSteps.map((step) => (
+                  <li key={step}>{step}</li>
+                ))}
+              </ol>
+            </div>
+
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-text-muted">
+                Suggested files
+              </p>
+              <ul className="mt-2 space-y-1">
+                {activeLesson.files.map((filePath) => (
+                  <li key={filePath}>
+                    <Link
+                      href={`/workspace?path=${encodeURIComponent(filePath)}`}
+                      className={`flex items-center justify-between gap-2 rounded px-2 py-1 text-sm ${
+                        filePath === path
+                          ? "bg-primary/10 font-semibold text-heading"
+                          : "hover:bg-white/70"
+                      }`}
+                    >
+                      <code className="truncate">{filePath}</code>
+                      <span className="shrink-0 text-xs text-text-muted">
+                        {fileStatus[filePath] ? "Saved" : "Empty"}
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {activeLesson.playground ? (
+              <p className="text-xs text-text-muted">
+                This lesson includes an AI playground.{" "}
+                <Link
+                  href={`/weeks/${activeLesson.week}/days/${activeLesson.day}`}
+                  className="nav-link"
+                >
+                  Run it on the lesson page
+                </Link>
+                , then return here to review the saved transcript.
+              </p>
+            ) : null}
+          </div>
+        ) : (
+          <div className="card text-sm text-text-muted">
+            Select a lesson file from the sidebar, or create a custom path. Files linked to Fast Track
+            lessons show lab steps and the deliverable here.
+          </div>
+        )}
+
+        <div className="card space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <code className="text-sm text-heading">{path || "Select a file"}</code>
+            <button
+              type="button"
+              className="btn-primary text-xs"
+              disabled={pending || !path}
+              onClick={() => save()}
+            >
+              {pending ? "Saving…" : "Save"}
+            </button>
+          </div>
+          <textarea
+            className="min-h-[22rem] w-full rounded border border-border bg-white p-3 font-mono text-sm leading-relaxed text-heading"
+            value={body}
+            onChange={(event) => {
+              setBody(event.target.value);
+              setStatus(null);
+            }}
+            placeholder={placeholder}
+          />
+          {status ? <p className="text-xs text-text-muted">{status}</p> : null}
         </div>
-        <textarea
-          className="min-h-[28rem] w-full rounded border border-border bg-white p-3 font-mono text-sm leading-relaxed text-heading"
-          value={body}
-          onChange={(event) => {
-            setBody(event.target.value);
-            setStatus(null);
-          }}
-          placeholder="Write your deliverable here…"
-        />
-        {status ? <p className="text-xs text-text-muted">{status}</p> : null}
       </div>
     </div>
   );
