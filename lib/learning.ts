@@ -7,11 +7,9 @@ import {
   localSaveQuizAttempt,
   localSetGateItem,
 } from "./local-store";
-import type { QuizScope } from "./checks";
-
 export async function saveQuizAttempt(
   userId: string,
-  scope: QuizScope,
+  scope: string,
   scorePct: number,
   answers: Record<string, string>,
 ) {
@@ -27,7 +25,7 @@ export async function saveQuizAttempt(
   `;
 }
 
-export async function getLatestQuizScore(userId: string, scope: QuizScope) {
+export async function getLatestQuizScore(userId: string, scope: string) {
   if (isLocalStoreMode()) return localLatestQuizScore(userId, scope);
 
   const sql = getDb();

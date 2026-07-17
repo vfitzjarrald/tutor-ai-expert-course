@@ -6,8 +6,9 @@ import { logoutAction } from "@/app/actions";
 import type { SessionUser } from "@/lib/auth";
 
 const links = [
-  { href: "/", label: "Today" },
+  { href: "/", label: "My AI Day" },
   { href: "/schedule", label: "Schedule" },
+  { href: "/placement", label: "Placement" },
   { href: "/checks", label: "Checks" },
   { href: "/resources", label: "Resources" },
   { href: "/gates", label: "Gates" },

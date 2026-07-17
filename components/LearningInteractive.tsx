@@ -2,18 +2,26 @@
 
 import { useActionState, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { submitQuizAction, toggleGateItemAction, type ActionResult } from "@/app/actions";
+import {
+  submitQuizAction,
+  toggleGateItemAction,
+  toggleLessonTaskAction,
+  type ActionResult,
+} from "@/app/actions";
 import type { QuizQuestion, QuizScope } from "@/lib/checks";
+import type { DayChecklistItem } from "@/lib/day-checklist";
 import type { GateItem } from "@/lib/gates";
 
 export function QuizForm({
   questions,
   scope,
   threshold,
+  placement = false,
 }: {
   questions: QuizQuestion[];
   scope: QuizScope;
   threshold: number;
+  placement?: boolean;
 }) {
   const [state, formAction, pending] = useActionState(submitQuizAction, null as ActionResult | null);
   const [revealed, setRevealed] = useState(false);
@@ -27,6 +35,7 @@ export function QuizForm({
       className="space-y-6"
     >
       <input type="hidden" name="scope" value={scope} />
+      {placement ? <input type="hidden" name="placement" value="true" /> : null}
       {questions.map((q) => (
         <fieldset key={q.id} className="card">
           <legend className="mb-3 text-sm font-semibold text-heading">
@@ -52,7 +61,7 @@ export function QuizForm({
       ))}
       <div className="flex flex-wrap items-center gap-3">
         <button type="submit" className="btn-primary" disabled={pending}>
-          {pending ? "Scoring…" : "Submit quiz"}
+          {pending ? "Scoring…" : placement ? "Submit placement check" : "Submit quiz"}
         </button>
         <span className="text-xs text-text-muted">Passing threshold: ≥{threshold}%</span>
       </div>
@@ -105,6 +114,68 @@ export function GateChecklist({
         );
       })}
     </ul>
+  );
+}
+
+export function DailyChecklist({
+  pathwayNodeId,
+  items,
+  states,
+}: {
+  pathwayNodeId: string;
+  items: DayChecklistItem[];
+  states: Record<string, boolean>;
+}) {
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
+  const doneCount = items.filter((item) => states[item.key]).length;
+
+  return (
+    <div>
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <h3 className="font-semibold text-heading">Module checklist</h3>
+        <span className="text-xs text-text-muted">
+          {doneCount}/{items.length}
+        </span>
+      </div>
+      <ul className="space-y-2">
+        {items.map((item) => {
+          const done = states[item.key] ?? false;
+          return (
+            <li key={item.key} className="flex items-start gap-3 rounded border border-border px-3 py-2">
+              <form
+                action={(formData) => {
+                  startTransition(async () => {
+                    await toggleLessonTaskAction(formData);
+                    router.refresh();
+                  });
+                }}
+              >
+                <input type="hidden" name="pathwayNodeId" value={pathwayNodeId} />
+                <input type="hidden" name="taskKey" value={item.key} />
+                <input type="hidden" name="done" value={done ? "false" : "true"} />
+                <button
+                  type="submit"
+                  disabled={pending}
+                  className={`mt-0.5 h-5 w-5 border ${
+                    done ? "border-primary bg-primary text-white" : "border-border bg-white"
+                  }`}
+                  aria-label={done ? "Mark checklist item incomplete" : "Mark checklist item complete"}
+                >
+                  {done ? "✓" : ""}
+                </button>
+              </form>
+              <span className={`text-sm ${done ? "text-text-muted line-through" : "text-heading"}`}>
+                {item.label}
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+      <p className="mt-3 text-xs text-text-muted">
+        Checklist progress is saved across devices. Mark the lesson complete separately when the deliverable is done.
+      </p>
+    </div>
   );
 }
 

@@ -1,0 +1,43 @@
+{
+  "version": 1,
+  "description": "Week-level skill DAG for the recognized-expert Fast Track. Each week expands to five ordered lesson nodes.",
+  "weeks": [
+    { "id": "rag-foundations", "week": 1, "phase": 1, "required": true, "skippable": true, "gate": false, "tags": ["llm", "tutor"], "prereqs": [] },
+    { "id": "rag-pipeline", "week": 7, "phase": 1, "required": true, "skippable": true, "gate": false, "tags": ["rag", "citations"], "prereqs": ["rag-foundations"] },
+    { "id": "rag-gate", "week": 8, "phase": 1, "required": true, "skippable": false, "gate": true, "tags": ["ragas", "evaluation"], "prereqs": ["rag-pipeline"] },
+
+    { "id": "its-foundations", "week": 9, "phase": 2, "required": true, "skippable": true, "gate": false, "tags": ["its", "pedagogy"], "prereqs": ["rag-gate"] },
+    { "id": "knowledge-maps", "week": 10, "phase": 2, "required": true, "skippable": true, "gate": false, "tags": ["dag", "prerequisites"], "prereqs": ["its-foundations"] },
+    { "id": "knowledge-map-gate", "week": 16, "phase": 2, "required": true, "skippable": false, "gate": true, "tags": ["sequencing", "validation"], "prereqs": ["knowledge-maps"] },
+
+    { "id": "graph-foundations", "week": 17, "phase": 3, "required": true, "skippable": true, "gate": false, "tags": ["graph", "neo4j"], "prereqs": ["knowledge-map-gate"] },
+    { "id": "student-modeling", "week": 21, "phase": 3, "required": true, "skippable": true, "gate": false, "tags": ["bkt", "mastery"], "prereqs": ["graph-foundations"] },
+    { "id": "student-model-gate", "week": 24, "phase": 3, "required": true, "skippable": false, "gate": true, "tags": ["neo4j", "bkt"], "prereqs": ["student-modeling"] },
+
+    { "id": "graphrag-foundations", "week": 25, "phase": 4, "required": true, "skippable": true, "gate": false, "tags": ["graphrag", "retrieval"], "prereqs": ["student-model-gate"] },
+    { "id": "graphrag-evaluation", "week": 29, "phase": 4, "required": true, "skippable": true, "gate": false, "tags": ["evaluation", "baseline"], "prereqs": ["graphrag-foundations"] },
+    { "id": "graphrag-gate", "week": 32, "phase": 4, "required": true, "skippable": false, "gate": true, "tags": ["benchmark", "graphrag"], "prereqs": ["graphrag-evaluation"] },
+
+    { "id": "agent-foundations", "week": 33, "phase": 5, "required": true, "skippable": true, "gate": false, "tags": ["agents", "tools"], "prereqs": ["graphrag-gate"] },
+    { "id": "mcp-integration", "week": 37, "phase": 5, "required": true, "skippable": true, "gate": false, "tags": ["mcp", "react"], "prereqs": ["agent-foundations"] },
+    { "id": "agent-gate", "week": 40, "phase": 5, "required": true, "skippable": false, "gate": true, "tags": ["mcp", "security"], "prereqs": ["mcp-integration"] },
+
+    { "id": "product-integration", "week": 41, "phase": 6, "required": true, "skippable": true, "gate": false, "tags": ["product", "integration"], "prereqs": ["agent-gate"] },
+    { "id": "observability", "week": 45, "phase": 6, "required": true, "skippable": true, "gate": false, "tags": ["observability", "evaluation"], "prereqs": ["product-integration"] },
+    { "id": "production-hardening", "week": 49, "phase": 6, "required": true, "skippable": true, "gate": false, "tags": ["safety", "deployment"], "prereqs": ["observability"] },
+    { "id": "production-gate", "week": 52, "phase": 6, "required": true, "skippable": false, "gate": true, "tags": ["production", "capstone"], "prereqs": ["production-hardening"] },
+
+    { "id": "paper-reproduction-kt", "week": 53, "phase": 7, "required": true, "skippable": false, "gate": false, "tags": ["research", "knowledge-tracing"], "prereqs": ["production-gate"] },
+    { "id": "paper-reproduction-kt-build", "week": 54, "phase": 7, "required": true, "skippable": false, "gate": false, "tags": ["research", "reproduction"], "prereqs": ["paper-reproduction-kt"] },
+    { "id": "paper-reproduction-graphrag", "week": 55, "phase": 7, "required": true, "skippable": false, "gate": false, "tags": ["research", "graphrag"], "prereqs": ["paper-reproduction-kt-build"] },
+    { "id": "oss-contribution", "week": 58, "phase": 7, "required": true, "skippable": false, "gate": false, "tags": ["oss", "contribution"], "prereqs": ["paper-reproduction-graphrag"] },
+    { "id": "teaching-design", "week": 71, "phase": 7, "required": true, "skippable": false, "gate": false, "tags": ["teaching", "communication"], "prereqs": ["oss-contribution"] },
+    { "id": "teaching-delivery", "week": 72, "phase": 7, "required": true, "skippable": false, "gate": false, "tags": ["teaching", "public-artifact"], "prereqs": ["teaching-design"] },
+    { "id": "portfolio", "week": 76, "phase": 7, "required": true, "skippable": false, "gate": false, "tags": ["portfolio", "evidence"], "prereqs": ["teaching-delivery"] },
+    { "id": "expert-gate", "week": 78, "phase": 7, "required": true, "skippable": false, "gate": true, "tags": ["expert", "demo", "portfolio"], "prereqs": ["portfolio"] },
+
+    { "id": "multimodal-depth", "week": 31, "phase": 4, "required": false, "skippable": true, "gate": false, "tags": ["optional", "multimodal"], "prereqs": ["graphrag-foundations"] },
+    { "id": "experiment-depth", "week": 60, "phase": 7, "required": false, "skippable": true, "gate": false, "tags": ["optional", "research"], "prereqs": ["paper-reproduction-graphrag"] },
+    { "id": "public-writing-depth", "week": 64, "phase": 7, "required": false, "skippable": true, "gate": false, "tags": ["optional", "writing"], "prereqs": ["oss-contribution"] }
+  ]
+}

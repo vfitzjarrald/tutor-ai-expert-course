@@ -3,6 +3,7 @@ import { PageHero } from "@/components/SiteChrome";
 import { getSession } from "@/lib/auth";
 import { getScheduleOutline } from "@/lib/curriculum";
 import { getLearnerQueue, getProgressMap, progressKey } from "@/lib/progress";
+import { getPathwayNodes } from "@/lib/pathway";
 import { PHASES, padWeek } from "@/lib/schedule";
 
 export const dynamic = "force-dynamic";
@@ -14,15 +15,18 @@ export default async function SchedulePage() {
   const outline = getScheduleOutline();
   const progress = await getProgressMap(session.id);
   const queue = await getLearnerQueue(session.id, 1);
+  const pathway = getPathwayNodes();
+  const requiredWeeks = new Set(pathway.required.map((node) => node.week));
+  const optionalWeeks = new Set(pathway.optional.map((node) => node.week));
   const currentWeek = queue.today?.week ?? null;
   const nextTask = queue.today;
 
   return (
     <div>
       <PageHero
-        eyebrow="Full course"
+        eyebrow="Fast Track + full archive"
         title="Schedule"
-        description="Seven phases · 78 weeks · five lesson days each week. Current week follows your first incomplete lesson."
+        description={`${pathway.required.length} required lessons target recognized-expert status in about ${pathway.config.targetWeeks} weeks. All 78 original weeks remain available.`}
       />
 
       {nextTask ? (
@@ -72,6 +76,15 @@ export default async function SchedulePage() {
                     (d) => progress.get(progressKey(w.week, d))?.completed,
                   ).length;
                   const isCurrent = currentWeek === w.week;
+                  const isRequired = requiredWeeks.has(w.week);
+                  const isOptional = optionalWeeks.has(w.week);
+                  const pathwayState = queue.states.filter((state) => state.node.week === w.week);
+                  const isLocked =
+                    isRequired &&
+                    pathwayState.length > 0 &&
+                    pathwayState.every(
+                      (state) => state.locked && !state.completed && !state.skippedByPlacement,
+                    );
                   return (
                     <li
                       key={w.week}
@@ -88,6 +101,9 @@ export default async function SchedulePage() {
                             Current
                           </span>
                         ) : null}
+                        <span className="rounded border border-border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-text-muted">
+                          {isRequired ? (isLocked ? "Locked" : "Required") : isOptional ? "Depth · optional" : "Full track"}
+                        </span>
                         {isCurrent && nextTask ? (
                           <Link
                             href={`/weeks/${nextTask.week}/days/${nextTask.day}`}

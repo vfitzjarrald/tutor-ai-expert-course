@@ -1,0 +1,42 @@
+{
+  "id": "recognized-expert-fast-track",
+  "name": "Recognized Expert Fast Track",
+  "targetWeeks": 30,
+  "lessonMinutes": 60,
+  "requiredWeekIds": [
+    "rag-foundations",
+    "rag-pipeline",
+    "rag-gate",
+    "its-foundations",
+    "knowledge-maps",
+    "knowledge-map-gate",
+    "graph-foundations",
+    "student-modeling",
+    "student-model-gate",
+    "graphrag-foundations",
+    "graphrag-evaluation",
+    "graphrag-gate",
+    "agent-foundations",
+    "mcp-integration",
+    "agent-gate",
+    "product-integration",
+    "observability",
+    "production-hardening",
+    "production-gate",
+    "paper-reproduction-kt",
+    "paper-reproduction-kt-build",
+    "paper-reproduction-graphrag",
+    "oss-contribution",
+    "teaching-design",
+    "teaching-delivery",
+    "portfolio",
+    "expert-gate"
+  ],
+  "optionalWeekIds": [
+    "multimodal-depth",
+    "experiment-depth",
+    "public-writing-depth"
+  ],
+  "placementThreshold": 80,
+  "expertThreshold": 85
+}

@@ -16,6 +16,7 @@ const routes = [
   "/login",
   "/admin/users",
   "/checks",
+  "/placement",
   "/gates",
   "/resources",
   "/phases/[id]",

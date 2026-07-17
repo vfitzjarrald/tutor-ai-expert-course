@@ -159,6 +159,7 @@ export async function submitQuizAction(
     const session = await requireSession();
     const scopeRaw = String(formData.get("scope") ?? "all");
     const scope = (scopeRaw === "all" || scopeRaw.startsWith("phase-") ? scopeRaw : "all") as import("@/lib/checks").QuizScope;
+    const placement = String(formData.get("placement") ?? "") === "true";
     const { questionsForScope, scoreAnswers, thresholdForScope } = await import("@/lib/checks");
     const { saveQuizAttempt } = await import("@/lib/learning");
 
@@ -169,14 +170,19 @@ export async function submitQuizAction(
       if (val) answers[q.id] = val;
     }
     const result = scoreAnswers(questions, answers);
-    await saveQuizAttempt(session.id, scope, result.scorePct, answers);
+    const savedScope = placement && scope !== "all" ? `placement-${scope}` : scope;
+    await saveQuizAttempt(session.id, savedScope, result.scorePct, answers);
     const threshold = thresholdForScope(scope);
     const passed = result.scorePct >= threshold;
     return {
       ok: true,
       message: passed
-        ? `Passed with ${result.scorePct}% (need ≥${threshold}%).`
-        : `Scored ${result.scorePct}% — need ≥${threshold}% to clear this gate.`,
+        ? placement
+          ? `Placement cleared with ${result.scorePct}%. Skippable Phase ${scope.replace("phase-", "")} foundations are bypassed; the phase gate remains required.`
+          : `Passed with ${result.scorePct}% (need ≥${threshold}%).`
+        : placement
+          ? `Scored ${result.scorePct}% — need ≥${threshold}% to skip the phase foundations.`
+          : `Scored ${result.scorePct}% — need ≥${threshold}% to clear this gate.`,
       scorePct: result.scorePct,
       correct: result.correct,
       total: result.total,
@@ -195,6 +201,16 @@ export async function toggleGateItemAction(formData: FormData): Promise<void> {
   if (!phase || !itemKey) return;
   const { setGateItem } = await import("@/lib/learning");
   await setGateItem(session.id, phase, itemKey, done);
+}
+
+export async function toggleLessonTaskAction(formData: FormData): Promise<void> {
+  const session = await requireSession();
+  const pathwayNodeId = String(formData.get("pathwayNodeId") ?? "");
+  const taskKey = String(formData.get("taskKey") ?? "");
+  const done = String(formData.get("done") ?? "") === "true";
+  if (!pathwayNodeId || !taskKey) return;
+  const { setLessonTask } = await import("@/lib/day-checklist");
+  await setLessonTask(session.id, pathwayNodeId, taskKey, done);
 }
 
 export async function resetMyProgressAction(

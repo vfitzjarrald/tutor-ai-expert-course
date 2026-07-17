@@ -30,7 +30,7 @@ export default async function AccountPage() {
       <PageHero
         eyebrow="Your account"
         title={session.displayName || session.username}
-        description="Manage your learner progress. Progression follows completed lessons, not the calendar."
+        description={`Recognized Expert Fast Track · about ${queue.config.targetWeeks} weeks. Progression follows completed lessons and placement, not the calendar.`}
       />
 
       <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -58,6 +58,9 @@ export default async function AccountPage() {
           <p className="text-sm">
             {queue.stats.completed} done · {queue.stats.remaining} remaining
           </p>
+          <Link href="/placement" className="nav-link mt-2 inline-block text-sm">
+            Placement checks
+          </Link>
         </div>
         <div className="card">
           <p className="text-xs font-semibold uppercase tracking-wide text-text-muted">Quiz scopes</p>
@@ -86,8 +89,8 @@ export default async function AccountPage() {
         <h2 className="text-lg text-heading">Start over</h2>
         <p className="mt-2 text-sm">
           Clears day completion checkmarks, quiz attempts, and phase gate checklists so{" "}
-          <strong className="text-heading">Do today</strong> returns to Week 1 Day 1. Also resets the
-          calendar projection start to today.
+          <strong className="text-heading">My AI Day</strong> returns to the first Fast Track lesson.
+          Placement scores are cleared, gates stay mandatory, and the calendar projection resets to today.
         </p>
         <p className="mt-2 text-sm font-semibold text-heading">Your day notes are kept.</p>
         <div className="mt-6">

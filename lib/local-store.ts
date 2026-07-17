@@ -49,12 +49,21 @@ type GateItemRow = {
   updated_at: string;
 };
 
+type LessonTaskRow = {
+  user_id: string;
+  pathway_node_id: string;
+  task_key: string;
+  done: boolean;
+  updated_at: string;
+};
+
 type StoreData = {
   users: StoreUser[];
   progress: ProgressRow[];
   notes: NoteRow[];
   quiz_attempts?: QuizAttemptRow[];
   gate_items?: GateItemRow[];
+  lesson_task_progress?: LessonTaskRow[];
 };
 
 function storePath() {
@@ -62,7 +71,14 @@ function storePath() {
 }
 
 function emptyStore(): StoreData {
-  return { users: [], progress: [], notes: [], quiz_attempts: [], gate_items: [] };
+  return {
+    users: [],
+    progress: [],
+    notes: [],
+    quiz_attempts: [],
+    gate_items: [],
+    lesson_task_progress: [],
+  };
 }
 
 function readStore(): StoreData {
@@ -71,6 +87,7 @@ function readStore(): StoreData {
   const data = JSON.parse(readFileSync(file, "utf8")) as StoreData;
   if (!data.quiz_attempts) data.quiz_attempts = [];
   if (!data.gate_items) data.gate_items = [];
+  if (!data.lesson_task_progress) data.lesson_task_progress = [];
   return data;
 }
 
@@ -298,6 +315,43 @@ export async function localSetGateItem(userId: string, phase: number, itemKey: s
   writeStore(data);
 }
 
+export async function localGetLessonTaskStates(userId: string, pathwayNodeId: string) {
+  const data = readStore();
+  const map = new Map<string, boolean>();
+  for (const row of data.lesson_task_progress ?? []) {
+    if (row.user_id === userId && row.pathway_node_id === pathwayNodeId) {
+      map.set(row.task_key, row.done);
+    }
+  }
+  return map;
+}
+
+export async function localSetLessonTask(
+  userId: string,
+  pathwayNodeId: string,
+  taskKey: string,
+  done: boolean,
+) {
+  const data = readStore();
+  data.lesson_task_progress = data.lesson_task_progress ?? [];
+  const index = data.lesson_task_progress.findIndex(
+    (row) =>
+      row.user_id === userId &&
+      row.pathway_node_id === pathwayNodeId &&
+      row.task_key === taskKey,
+  );
+  const row = {
+    user_id: userId,
+    pathway_node_id: pathwayNodeId,
+    task_key: taskKey,
+    done,
+    updated_at: new Date().toISOString(),
+  };
+  if (index >= 0) data.lesson_task_progress[index] = row;
+  else data.lesson_task_progress.push(row);
+  writeStore(data);
+}
+
 export async function localGetUserCourseStartDate(userId: string): Promise<Date | null> {
   const data = readStore();
   const user = data.users.find((u) => u.id === userId);
@@ -323,6 +377,9 @@ export async function localResetLearnerProgress(userId: string, opts: { keepNote
   data.progress = data.progress.filter((p) => p.user_id !== userId);
   data.quiz_attempts = (data.quiz_attempts ?? []).filter((a) => a.user_id !== userId);
   data.gate_items = (data.gate_items ?? []).filter((g) => g.user_id !== userId);
+  data.lesson_task_progress = (data.lesson_task_progress ?? []).filter(
+    (row) => row.user_id !== userId,
+  );
   if (!opts.keepNotes) {
     data.notes = data.notes.filter((n) => n.user_id !== userId);
   }

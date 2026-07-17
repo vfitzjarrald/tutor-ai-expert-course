@@ -1,10 +1,13 @@
 import Link from "next/link";
+import { DailyChecklist } from "@/components/LearningInteractive";
 import { PageHero } from "@/components/SiteChrome";
+import { getAiNews } from "@/lib/ai-news";
 import { getSession } from "@/lib/auth";
 import { EXPERT_THRESHOLD, PHASE_GATE_THRESHOLD, isGateWeek } from "@/lib/checks";
 import { loadWeek } from "@/lib/curriculum";
 import { gatesByPhase } from "@/lib/gates";
 import { getGateStates, getLatestQuizScore } from "@/lib/learning";
+import { extractDayChecklist, getLessonTaskStates } from "@/lib/day-checklist";
 import { getLearnerQueue } from "@/lib/progress";
 import { getPhaseForWeek, padWeek } from "@/lib/schedule";
 import { ensureAdminSeeded } from "@/lib/users";
@@ -29,6 +32,18 @@ export default async function HomePage() {
   const todayDay = todayWeek?.days.find((d) => d.day === todayPos?.day);
   const tomorrowWeek = tomorrowPos ? loadWeek(tomorrowPos.week) : null;
   const tomorrowDay = tomorrowWeek?.days.find((d) => d.day === tomorrowPos?.day);
+  const checklist =
+    todayPos && todayDay
+      ? extractDayChecklist(todayDay.rawMarkdown, {
+          objective: todayDay.objective,
+          deliverable: todayDay.deliverable,
+        })
+      : [];
+  const checklistStates =
+    todayPos && checklist.length
+      ? await getLessonTaskStates(session.id, todayPos.id)
+      : new Map<string, boolean>();
+  const news = await getAiNews(6);
 
   const focusWeek = todayPos?.week ?? 78;
   const phase = getPhaseForWeek(focusWeek);
@@ -44,14 +59,14 @@ export default async function HomePage() {
       <PageHero
         eyebrow={
           queue.courseComplete
-            ? "Course complete"
-            : `Phase ${phase.id} · Week ${padWeek(focusWeek)}`
+            ? "Fast Track · Course complete"
+            : `Fast Track · ~${queue.config.targetWeeks} weeks · Phase ${phase.id} · Week ${padWeek(focusWeek)}`
         }
-        title="Do today"
+        title="My AI Day"
         description={
           queue.courseComplete
             ? "You’ve finished every lesson. Review gates, quizzes, or revisit any week."
-            : "Your next incomplete lesson — about 60 minutes. Progress follows what you finish, not the calendar."
+            : "Your focused learning module, next step, and AI field briefing."
         }
       />
 
@@ -62,6 +77,9 @@ export default async function HomePage() {
           <p className="text-sm">
             {queue.stats.completed} done · {queue.stats.remaining} remaining
           </p>
+          <Link href="/placement" className="nav-link mt-2 inline-block text-sm">
+            Test out of foundations
+          </Link>
         </div>
         <div className="card">
           <p className="text-xs font-semibold uppercase tracking-wide text-text-muted">Quiz readiness</p>
@@ -93,6 +111,9 @@ export default async function HomePage() {
             <Link href={`/resources?phase=${phase.id}`} className="nav-link text-sm">
               Resources
             </Link>
+            <Link href="/schedule" className="nav-link text-sm">
+              {queue.optional.length} optional depth lessons
+            </Link>
           </div>
         </div>
       </div>
@@ -119,10 +140,16 @@ export default async function HomePage() {
         <div className="space-y-6">
           <div className="card">
             <p className="page-hero-step">
-              Do today · Week {padWeek(todayPos.week)} · Day {todayDay.day}
+              Today’s Fast Track module · Week {padWeek(todayPos.week)} · Day {todayDay.day}
             </p>
             <h2 className="text-xl text-heading">{todayDay.title}</h2>
             <p className="mt-2 text-sm">{todayWeek.title}</p>
+            <p className="mt-2 text-xs text-text-muted">
+              About {queue.config.lessonMinutes} minutes · Prerequisites satisfied
+            </p>
+            {todayWeek.outcomes ? (
+              <p className="mt-4 text-sm text-text-muted">{todayWeek.outcomes.replace(/^By Friday\s*/i, "")}</p>
+            ) : null}
             {todayDay.objective ? (
               <p className="mt-4">
                 <span className="font-semibold text-heading">Objective: </span>
@@ -143,6 +170,15 @@ export default async function HomePage() {
                 Open today’s lesson
               </Link>
             </div>
+            {checklist.length ? (
+              <div className="mt-6 border-t border-border pt-6">
+                <DailyChecklist
+                  pathwayNodeId={todayPos.id}
+                  items={checklist}
+                  states={Object.fromEntries(checklistStates)}
+                />
+              </div>
+            ) : null}
           </div>
 
           {tomorrowPos && tomorrowWeek && tomorrowDay ? (
@@ -168,6 +204,43 @@ export default async function HomePage() {
           <p>Could not load the next lesson. Check curriculum files.</p>
         </div>
       )}
+
+      <section className="mt-10">
+        <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <p className="page-hero-step">Field briefing</p>
+            <h2 className="text-2xl text-heading">AI News</h2>
+          </div>
+          <p className="text-xs text-text-muted">Trusted feeds · refreshed daily</p>
+        </div>
+        {news.length ? (
+          <div className="grid gap-4 md:grid-cols-2">
+            {news.map((item) => (
+              <article key={item.url} className="card">
+                <p className="text-xs font-semibold uppercase tracking-wide text-text-muted">
+                  {item.source}
+                  {item.publishedAt
+                    ? ` · ${new Date(item.publishedAt).toLocaleDateString(undefined, {
+                        month: "short",
+                        day: "numeric",
+                      })}`
+                    : ""}
+                </p>
+                <h3 className="mt-2 text-lg text-heading">
+                  <a href={item.url} target="_blank" rel="noopener noreferrer" className="nav-link">
+                    {item.title}
+                  </a>
+                </h3>
+                {item.summary ? <p className="mt-2 text-sm text-text-muted">{item.summary}</p> : null}
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div className="card text-sm text-text-muted">
+            News is temporarily unavailable. Your learning plan is unaffected.
+          </div>
+        )}
+      </section>
     </div>
   );
 }

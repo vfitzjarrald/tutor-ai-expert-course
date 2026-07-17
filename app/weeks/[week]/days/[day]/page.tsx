@@ -9,6 +9,7 @@ import { isGateWeek } from "@/lib/checks";
 import { loadDay, loadWeek } from "@/lib/curriculum";
 import { extractDeliverablePaths } from "@/lib/hub";
 import { getDayNote, getDayProgress } from "@/lib/progress";
+import { nextRequiredPathwayNode, pathwayNodeForLesson } from "@/lib/pathway";
 import { getPhaseForWeek, nextLessonPosition, padWeek, previousLessonPosition } from "@/lib/schedule";
 
 export const dynamic = "force-dynamic";
@@ -37,8 +38,11 @@ export default async function DayPage({
   const note = await getDayNote(session.id, weekNum, dayNum);
   const paths = extractDeliverablePaths(day.rawMarkdown);
   const prev = previousLessonPosition(weekNum, dayNum);
-  const next = nextLessonPosition(weekNum, dayNum);
-  const nextHref = next ? `/weeks/${next.week}/days/${next.day}` : "/";
+  const pathwayNode = pathwayNodeForLesson(weekNum, dayNum);
+  const nextPathway = pathwayNode?.required ? nextRequiredPathwayNode(weekNum, dayNum) : null;
+  const next = nextPathway ?? nextLessonPosition(weekNum, dayNum);
+  // Return to My AI Day after a Fast Track completion so placement skips are recalculated.
+  const nextHref = pathwayNode?.required ? "/" : next ? `/weeks/${next.week}/days/${next.day}` : "/";
 
   return (
     <div>
