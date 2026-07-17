@@ -14,6 +14,7 @@ export type StoreUser = {
   created_at: string;
   created_by: string | null;
   course_start_date?: string | null;
+  learning_track?: "dev" | "workspace" | null;
 };
 
 type ProgressRow = {
@@ -111,6 +112,19 @@ type ExpertCertificateRow = {
   pd_hours: number;
 };
 
+type WorkspaceFileRow = {
+  user_id: string;
+  path: string;
+  body: string;
+  updated_at: string;
+};
+
+type PlaygroundRunRow = {
+  id: string;
+  user_id: string;
+  created_at: string;
+};
+
 type StoreData = {
   users: StoreUser[];
   progress: ProgressRow[];
@@ -123,6 +137,8 @@ type StoreData = {
   user_achievements?: LocalUserAchievementRow[];
   external_credentials?: ExternalCredentialRow[];
   expert_certificates?: ExpertCertificateRow[];
+  workspace_files?: WorkspaceFileRow[];
+  playground_runs?: PlaygroundRunRow[];
 };
 
 function storePath() {
@@ -142,6 +158,8 @@ function emptyStore(): StoreData {
     user_achievements: [],
     external_credentials: [],
     expert_certificates: [],
+    workspace_files: [],
+    playground_runs: [],
   };
 }
 
@@ -157,6 +175,8 @@ function readStore(): StoreData {
   if (!data.user_achievements) data.user_achievements = [];
   if (!data.external_credentials) data.external_credentials = [];
   if (!data.expert_certificates) data.expert_certificates = [];
+  if (!data.workspace_files) data.workspace_files = [];
+  if (!data.playground_runs) data.playground_runs = [];
   return data;
 }
 
@@ -629,6 +649,82 @@ export async function localSetUserCourseStartDate(userId: string, date: Date) {
   const m = String(date.getMonth() + 1).padStart(2, "0");
   const d = String(date.getDate()).padStart(2, "0");
   user.course_start_date = `${y}-${m}-${d}`;
+  writeStore(data);
+}
+
+export async function localGetLearningTrack(userId: string): Promise<"dev" | "workspace" | null> {
+  const user = readStore().users.find((u) => u.id === userId);
+  const track = user?.learning_track;
+  return track === "dev" || track === "workspace" ? track : null;
+}
+
+export async function localSetLearningTrack(userId: string, track: "dev" | "workspace") {
+  const data = readStore();
+  const user = data.users.find((u) => u.id === userId);
+  if (!user) return;
+  user.learning_track = track;
+  writeStore(data);
+}
+
+export async function localListWorkspaceFiles(userId: string) {
+  return (readStore().workspace_files ?? [])
+    .filter((row) => row.user_id === userId)
+    .map((row) => ({ path: row.path, updatedAt: row.updated_at }))
+    .sort((a, b) => a.path.localeCompare(b.path));
+}
+
+export async function localGetWorkspaceFile(userId: string, filePath: string) {
+  const row = (readStore().workspace_files ?? []).find(
+    (entry) => entry.user_id === userId && entry.path === filePath,
+  );
+  if (!row) return null;
+  return { path: row.path, body: row.body, updatedAt: row.updated_at };
+}
+
+export async function localSaveWorkspaceFile(userId: string, filePath: string, body: string) {
+  const data = readStore();
+  if (!data.workspace_files) data.workspace_files = [];
+  const existing = data.workspace_files.find(
+    (row) => row.user_id === userId && row.path === filePath,
+  );
+  const updatedAt = new Date().toISOString();
+  if (existing) {
+    existing.body = body;
+    existing.updated_at = updatedAt;
+  } else {
+    data.workspace_files.push({
+      user_id: userId,
+      path: filePath,
+      body,
+      updated_at: updatedAt,
+    });
+  }
+  writeStore(data);
+}
+
+export async function localWorkspacePathsNonEmpty(userId: string, paths: string[]) {
+  const map = new Map<string, boolean>();
+  for (const p of paths) map.set(p, false);
+  for (const row of (readStore().workspace_files ?? []).filter((entry) => entry.user_id === userId)) {
+    if (map.has(row.path)) map.set(row.path, row.body.trim().length > 0);
+  }
+  return map;
+}
+
+export async function localCountPlaygroundRunsSince(userId: string, sinceIso: string) {
+  return (readStore().playground_runs ?? []).filter(
+    (row) => row.user_id === userId && row.created_at >= sinceIso,
+  ).length;
+}
+
+export async function localRecordPlaygroundRun(userId: string) {
+  const data = readStore();
+  if (!data.playground_runs) data.playground_runs = [];
+  data.playground_runs.push({
+    id: randomUUID(),
+    user_id: userId,
+    created_at: new Date().toISOString(),
+  });
   writeStore(data);
 }
 

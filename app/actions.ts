@@ -18,10 +18,18 @@ import {
   resetUserPassword,
   generatePassword,
   listUsers,
+  setUserLearningTrack,
 } from "@/lib/users";
 import { resetLearnerProgress, setDayCompleted, upsertDayNote } from "@/lib/progress";
+import { isLearningTrack, type LearningTrack } from "@/lib/learning-track";
+import { isValidWorkspacePath, saveWorkspaceFile } from "@/lib/workspace";
+import { runPlaygroundChat } from "@/lib/playground";
 
 export type ActionResult = { ok: true; message?: string; password?: string } | { ok: false; error: string };
+
+export type PlaygroundActionResult =
+  | { ok: true; output: string; model: string; savedPath?: string }
+  | { ok: false; error: string };
 
 export async function loginAction(_prev: ActionResult | null, formData: FormData): Promise<ActionResult> {
   try {
@@ -405,5 +413,92 @@ export async function resetLearnerProgressAction(
     }
     console.error(err);
     return { ok: false, error: "Could not reset progress." };
+  }
+}
+
+export async function setLearningTrackAction(track: LearningTrack): Promise<ActionResult> {
+  try {
+    const session = await requireSession();
+    if (!isLearningTrack(track)) return { ok: false, error: "Invalid track." };
+    await setUserLearningTrack(session.id, track);
+    revalidatePath("/");
+    revalidatePath("/account");
+    revalidatePath("/workspace");
+    return { ok: true, message: "Learning path saved." };
+  } catch (err) {
+    console.error(err);
+    return { ok: false, error: "Could not save learning path." };
+  }
+}
+
+export async function saveWorkspaceFileAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  try {
+    const session = await requireSession();
+    const path = String(formData.get("path") ?? "").trim();
+    const body = String(formData.get("body") ?? "");
+    if (!isValidWorkspacePath(path)) {
+      return {
+        ok: false,
+        error: "Path must start with notes/, capstone/, labs/, or checkpoints/ and use safe characters.",
+      };
+    }
+    await saveWorkspaceFile(session.id, path, body);
+    revalidatePath("/workspace");
+    revalidatePath("/");
+    return { ok: true, message: "Saved." };
+  } catch (err) {
+    console.error(err);
+    return { ok: false, error: "Could not save workspace file." };
+  }
+}
+
+export async function runPlaygroundAction(
+  _prev: PlaygroundActionResult | null,
+  formData: FormData,
+): Promise<PlaygroundActionResult> {
+  try {
+    const session = await requireSession();
+    const systemPrompt = String(formData.get("systemPrompt") ?? "").trim();
+    const userPrompt = String(formData.get("userPrompt") ?? "").trim();
+    const outputPath = String(formData.get("outputPath") ?? "").trim();
+    if (!systemPrompt || !userPrompt) return { ok: false, error: "Prompt required." };
+
+    const result = await runPlaygroundChat({
+      userId: session.id,
+      systemPrompt,
+      userPrompt,
+    });
+    if (!result.ok) return result;
+
+    let savedPath: string | undefined;
+    if (outputPath && isValidWorkspacePath(outputPath)) {
+      const stamp = new Date().toISOString();
+      const existing = await (await import("@/lib/workspace")).getWorkspaceFile(session.id, outputPath);
+      const entry = [
+        `## Playground run · ${stamp}`,
+        "",
+        "### System",
+        systemPrompt,
+        "",
+        "### User",
+        userPrompt,
+        "",
+        `### Assistant (${result.model})`,
+        result.output,
+        "",
+      ].join("\n");
+      const body = existing?.body ? `${existing.body.trim()}\n\n${entry}` : entry;
+      await saveWorkspaceFile(session.id, outputPath, body);
+      savedPath = outputPath;
+      revalidatePath("/workspace");
+    }
+
+    return { ok: true, output: result.output, model: result.model, savedPath };
+  } catch (err) {
+    console.error(err);
+    return { ok: false, error: "Playground failed." };
   }
 }

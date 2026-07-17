@@ -11,6 +11,7 @@ import {
   CalendarIcon,
   CheckIcon,
   ChevronDownIcon,
+  FolderIcon,
   GateIcon,
   LayersIcon,
   MoreIcon,
@@ -19,6 +20,7 @@ import {
   TrophyIcon,
   UserIcon,
 } from "@/components/Icons";
+import type { LearningTrack } from "@/lib/learning-track";
 
 const primaryLinks = [
   { href: "/", label: "My AI Day", icon: SparkIcon },
@@ -110,13 +112,28 @@ function BrandMark({ compact = false }: { compact?: boolean }) {
   );
 }
 
-export function SiteHeader({ user }: { user: SessionUser | null }) {
+export function SiteHeader({
+  user,
+  learningTrack = null,
+}: {
+  user: SessionUser | null;
+  learningTrack?: LearningTrack | null;
+}) {
   const pathname = usePathname();
   const moreActive = moreLinks.some((link) => isActive(pathname, link.href, link.match));
   const accountActive =
     pathname.startsWith("/account") ||
     pathname.startsWith("/admin") ||
-    pathname.startsWith("/achievements");
+    pathname.startsWith("/achievements") ||
+    pathname.startsWith("/workspace");
+  const navLinks =
+    learningTrack === "workspace"
+      ? [
+          primaryLinks[0],
+          { href: "/workspace", label: "Workspace", icon: FolderIcon },
+          ...primaryLinks.slice(1),
+        ]
+      : primaryLinks;
   const initials = (user?.displayName || user?.username || "U")
     .split(/\s+/)
     .map((part) => part[0])
@@ -130,7 +147,7 @@ export function SiteHeader({ user }: { user: SessionUser | null }) {
         <BrandMark />
         {user ? (
           <nav className="flex items-center gap-1 sm:gap-1.5">
-            {primaryLinks.map((link) => {
+            {navLinks.map((link) => {
               const Icon = link.icon;
               const active = isActive(pathname, link.href);
               return (
@@ -173,6 +190,18 @@ export function SiteHeader({ user }: { user: SessionUser | null }) {
               }
               active={accountActive}
             >
+              <Link
+                href="/workspace"
+                className={
+                  pathname.startsWith("/workspace")
+                    ? "nav-menu-item nav-menu-item-active"
+                    : "nav-menu-item"
+                }
+                role="menuitem"
+              >
+                <FolderIcon size={16} />
+                Workspace
+              </Link>
               <Link
                 href="/achievements"
                 className={

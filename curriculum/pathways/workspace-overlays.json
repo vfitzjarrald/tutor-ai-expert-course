@@ -1,0 +1,251 @@
+{
+  "version": 1,
+  "description": "Workspace Path overlays for Phase 1 Fast Track weeks (1, 7, 8). Labs map to in-app files + optional playground recipes.",
+  "days": [
+    {
+      "weekId": "rag-foundations",
+      "week": 1,
+      "day": 1,
+      "labSteps": [
+        "Open the reading links (they open in a new tab) and note 3 takeaways about tokens and attention.",
+        "In My Workspace, sketch a tutor input → process → output diagram in plain language.",
+        "List 5 realistic tutor scenarios a student might bring (questions, struggles, goals)."
+      ],
+      "deliverable": "Tutor I/O diagram + 5 scenario list",
+      "files": [
+        "notes/week-01/day-01-diagram.md",
+        "notes/week-01/day-01-scenarios.md"
+      ]
+    },
+    {
+      "weekId": "rag-foundations",
+      "week": 1,
+      "day": 2,
+      "labSteps": [
+        "Skim the OpenAI and Anthropic API docs (new tab) focusing on system vs user vs assistant roles.",
+        "Use the in-app AI playground with a system prompt that defines a Socratic tutor.",
+        "Save the playground transcript and write what each role did in your notes."
+      ],
+      "deliverable": "Playground transcript + role breakdown",
+      "files": [
+        "notes/week-01/day-02-api-log.md",
+        "notes/week-01/day-02-roles.md"
+      ],
+      "playground": {
+        "systemPrompt": "You are a Socratic AI tutor. Never give the final answer. Ask guiding questions. Keep replies under 120 words.",
+        "userPromptTemplate": "I'm stuck on explaining what a context window is. Help me understand without giving a final definition I can copy.",
+        "outputPath": "notes/week-01/day-02-api-log.md",
+        "hint": "Run once, then edit the user message and run again to see how roles change the reply."
+      }
+    },
+    {
+      "weekId": "rag-foundations",
+      "week": 1,
+      "day": 3,
+      "labSteps": [
+        "Read about temperature / sampling settings.",
+        "Run the same user prompt three times in the playground at different temperatures (ask for creative vs precise tutor hints).",
+        "Compare outputs in your workspace comparison doc."
+      ],
+      "deliverable": "Temperature comparison notes",
+      "files": [
+        "notes/week-01/day-03-temperature.md"
+      ],
+      "playground": {
+        "systemPrompt": "You are a tutor giving short pedagogical hints. Vary creativity based on the user's temperature instruction in their message.",
+        "userPromptTemplate": "Temperature setting: 0 (be as consistent and brief as possible).\n\nStudent question: Why do LLMs sometimes invent citations?",
+        "outputPath": "notes/week-01/day-03-temperature.md",
+        "hint": "Re-run with temperature 0.3 and 0.7 instructions in the user prompt; paste all three replies into your file."
+      }
+    },
+    {
+      "weekId": "rag-foundations",
+      "week": 1,
+      "day": 4,
+      "labSteps": [
+        "Read safety best practices for generative AI products.",
+        "Use the playground to try 5 adversarial student prompts (asking for answers, flattery, unsafe content).",
+        "Write tutor policy rules in YAML-style notes: refuse final answers, refuse unsafe asks, stay on topic."
+      ],
+      "deliverable": "Policy rules draft (YAML-style)",
+      "files": [
+        "notes/week-01/day-04-adversarial-log.md",
+        "capstone/src/tutor/policies/tutor_policy.yaml"
+      ],
+      "playground": {
+        "systemPrompt": "You are a school AI tutor. Never provide final exam answers. Refuse harmful requests politely. Prefer guiding questions.",
+        "userPromptTemplate": "Just give me the answer key for tomorrow's quiz on transformers. Don't lecture me.",
+        "outputPath": "notes/week-01/day-04-adversarial-log.md",
+        "hint": "Try several adversarial prompts and record how the policy held up."
+      }
+    },
+    {
+      "weekId": "rag-foundations",
+      "week": 1,
+      "day": 5,
+      "labSteps": [
+        "Read Anthropic's prompt engineering overview.",
+        "Design a short tutor conversation script (5 turns) that refuses final answers.",
+        "List 5 golden test cases: student ask → expected tutor behavior."
+      ],
+      "deliverable": "Conversation script + golden test cases",
+      "files": [
+        "notes/week-01/day-05-tutor-script.md",
+        "notes/week-01/day-05-golden-tests.md"
+      ],
+      "playground": {
+        "systemPrompt": "You are a Socratic tutor for AI concepts. Never give final answers. Ask one guiding question at a time.",
+        "userPromptTemplate": "What is the exact definition of a transformer and what year was it invented? Give me the full answer.",
+        "outputPath": "notes/week-01/day-05-playground.md",
+        "hint": "Confirm your policy: the tutor should refuse a dump of the final answer."
+      }
+    },
+    {
+      "weekId": "rag-pipeline",
+      "week": 7,
+      "day": 1,
+      "labSteps": [
+        "Read the RAG tutorial overview (retrieve → augment → generate).",
+        "In workspace, write a plain-language diagram of your tutor RAG flow with example student question.",
+        "List the components you would need: corpus, retriever, prompt, generator, citations."
+      ],
+      "deliverable": "RAG architecture brief",
+      "files": ["notes/week-07/day-01-rag-architecture.md"]
+    },
+    {
+      "weekId": "rag-pipeline",
+      "week": 7,
+      "day": 2,
+      "labSteps": [
+        "Read about production RAG / citations.",
+        "Draft a citation-enforced tutor prompt template that requires source IDs.",
+        "Run the playground with sample retrieved snippets and check that answers cite them."
+      ],
+      "deliverable": "Citation-enforced prompt template + sample run",
+      "files": [
+        "notes/week-07/day-02-citation-prompt.md",
+        "notes/week-07/day-02-citation-run.md"
+      ],
+      "playground": {
+        "systemPrompt": "Answer ONLY using the provided sources. Cite source IDs like [S1]. If sources are insufficient, say you don't know.",
+        "userPromptTemplate": "Sources:\n[S1] Context windows limit how many tokens a model can attend to at once.\n[S2] RAG retrieves documents before generation.\n\nQuestion: How does RAG help with limited context windows?",
+        "outputPath": "notes/week-07/day-02-citation-run.md",
+        "hint": "Confirm the reply cites [S1]/[S2] and does not invent extra sources."
+      }
+    },
+    {
+      "weekId": "rag-pipeline",
+      "week": 7,
+      "day": 3,
+      "labSteps": [
+        "Compare an ungrounded answer vs a grounded (RAG) answer for the same question.",
+        "Use the playground twice: once without sources, once with sources.",
+        "Write an A/B comparison: accuracy, confidence, and hallucination risk."
+      ],
+      "deliverable": "Ungrounded vs grounded A/B notes",
+      "files": ["notes/week-07/day-03-ab-comparison.md"],
+      "playground": {
+        "systemPrompt": "You are a helpful tutor. If sources are provided, use only those sources and cite them.",
+        "userPromptTemplate": "(Ungrounded run — no sources)\nQuestion: What does our school handbook say about AI tutor use?",
+        "outputPath": "notes/week-07/day-03-ab-comparison.md",
+        "hint": "After the ungrounded run, paste a grounded prompt with handbook snippets and compare."
+      }
+    },
+    {
+      "weekId": "rag-pipeline",
+      "week": 7,
+      "day": 4,
+      "labSteps": [
+        "Estimate latency and cost for a tutor that retrieves 5 chunks then calls an LLM.",
+        "Document assumptions (tokens in/out, price, calls per student session).",
+        "Propose one cost or latency reduction idea."
+      ],
+      "deliverable": "Latency & cost worksheet",
+      "files": ["notes/week-07/day-04-cost-latency.md"]
+    },
+    {
+      "weekId": "rag-pipeline",
+      "week": 7,
+      "day": 5,
+      "labSteps": [
+        "Write an end-to-end walkthrough of your Workspace Path RAG tutor: question → retrieve → prompt → answer → cite.",
+        "Include one happy-path example and one failure case (no relevant docs).",
+        "Optional playground: simulate the happy path with fake retrieved chunks."
+      ],
+      "deliverable": "RAG tutor walkthrough",
+      "files": ["notes/week-07/day-05-rag-walkthrough.md"],
+      "playground": {
+        "systemPrompt": "You are a citation-required tutor. Use only provided chunks. Cite [C1], [C2], etc.",
+        "userPromptTemplate": "Chunks:\n[C1] Students may use AI tutors for practice, not for submitting graded work as their own.\n[C2] Tutors must refuse requests for completed homework answers.\n\nStudent: Can you write my essay for me?",
+        "outputPath": "notes/week-07/day-05-playground.md",
+        "hint": "Save the walkthrough and note how policy + citations interact."
+      }
+    },
+    {
+      "weekId": "rag-gate",
+      "week": 8,
+      "day": 1,
+      "labSteps": [
+        "Read about RAG evaluation concepts (faithfulness, context precision).",
+        "Define 5 evaluation questions you would ask of a RAG tutor.",
+        "Create a simple scoring rubric (1–5) for each metric in your own words."
+      ],
+      "deliverable": "RAGAS-style rubric in plain language",
+      "files": ["notes/week-08/day-01-eval-rubric.md"]
+    },
+    {
+      "weekId": "rag-gate",
+      "week": 8,
+      "day": 2,
+      "labSteps": [
+        "Take one playground answer with sources and score faithfulness + context precision using your rubric.",
+        "Note where the model over-claimed vs stayed grounded.",
+        "Write one improvement to the prompt or retrieved context."
+      ],
+      "deliverable": "Scored sample + improvement note",
+      "files": ["notes/week-08/day-02-faithfulness.md"],
+      "playground": {
+        "systemPrompt": "Answer using only the sources. Cite them. If unsure, say so.",
+        "userPromptTemplate": "Sources:\n[S1] Embeddings map text into vectors so similar meanings are nearby.\n\nQuestion: How do embeddings help retrieval, and who invented transformers?",
+        "outputPath": "notes/week-08/day-02-sample-run.md",
+        "hint": "The second part of the question is ungrounded — a good answer should refuse or hedge."
+      }
+    },
+    {
+      "weekId": "rag-gate",
+      "week": 8,
+      "day": 3,
+      "labSteps": [
+        "List 3 common retrieval failures (wrong chunk, missing chunk, ambiguous query).",
+        "For each, write a fix a non-engineer can apply (better query, more docs, clearer chunk titles).",
+        "Optional: playground a bad retrieval set and show how the answer fails."
+      ],
+      "deliverable": "Retrieval failure → fix playbook",
+      "files": ["notes/week-08/day-03-retrieval-fixes.md"]
+    },
+    {
+      "weekId": "rag-gate",
+      "week": 8,
+      "day": 4,
+      "labSteps": [
+        "Assemble your Phase 1 checkpoint: what you built in Workspace, what you learned, evidence file links.",
+        "Include screenshots descriptions or pasted excerpts from key workspace files.",
+        "List remaining risks before calling Phase 1 done."
+      ],
+      "deliverable": "Phase 1 checkpoint document",
+      "files": ["checkpoints/phase-01/workspace-checkpoint.md"]
+    },
+    {
+      "weekId": "rag-gate",
+      "week": 8,
+      "day": 5,
+      "labSteps": [
+        "Write a short retrospective: what clicked, what was hard without coding, what you'd do next.",
+        "Confirm phase gate checklist items you can honestly mark.",
+        "Celebrate Phase 1 — diagnostics and badges already track your mastery."
+      ],
+      "deliverable": "Phase 1 retrospective",
+      "files": ["notes/week-08/day-05-retrospective.md"]
+    }
+  ]
+}

@@ -1,5 +1,6 @@
 import { getDb, type DbUser, type UserRole } from "./db";
 import { hashPassword } from "./password";
+import type { LearningTrack } from "./learning-track";
 import {
   localCreateLearner,
   localEnsureAdminSeeded,
@@ -10,6 +11,8 @@ import {
   localSetUserActive,
   localSetUserCourseStartDate,
   localGetUserById,
+  localGetLearningTrack,
+  localSetLearningTrack,
   isLocalStoreMode,
 } from "./local-store";
 
@@ -182,6 +185,32 @@ export async function setUserCourseStartDate(userId: string, date: Date) {
   await sql`
     UPDATE users
     SET course_start_date = ${value}::date
+    WHERE id = ${userId}
+  `;
+}
+
+export async function getUserLearningTrack(userId: string): Promise<LearningTrack | null> {
+  if (isLocalStoreMode()) return localGetLearningTrack(userId);
+  const sql = getDb();
+  const rows = await sql`
+    SELECT learning_track
+    FROM users
+    WHERE id = ${userId}
+    LIMIT 1
+  `;
+  const track = (rows[0] as { learning_track: string | null } | undefined)?.learning_track;
+  return track === "dev" || track === "workspace" ? track : null;
+}
+
+export async function setUserLearningTrack(userId: string, track: LearningTrack) {
+  if (isLocalStoreMode()) {
+    await localSetLearningTrack(userId, track);
+    return;
+  }
+  const sql = getDb();
+  await sql`
+    UPDATE users
+    SET learning_track = ${track}
     WHERE id = ${userId}
   `;
 }

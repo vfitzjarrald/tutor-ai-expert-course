@@ -25,6 +25,8 @@ const routes = [
   "/gates",
   "/resources",
   "/phases/[id]",
+  "/workspace",
+  "/account",
 ];
 
 const nextConfig: NextConfig = {

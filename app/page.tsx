@@ -15,10 +15,13 @@ import { EXPERT_THRESHOLD, PHASE_GATE_THRESHOLD, isGateWeek } from "@/lib/checks
 import { loadWeek } from "@/lib/curriculum";
 import { gatesByPhase } from "@/lib/gates";
 import { getGateStates, getLatestQuizScore } from "@/lib/learning";
+import { trackLabel } from "@/lib/learning-track";
 import { extractDayChecklist, getLessonTaskStates } from "@/lib/day-checklist";
 import { getLearnerQueue } from "@/lib/progress";
 import { getPhaseForWeek, padWeek } from "@/lib/schedule";
-import { ensureAdminSeeded } from "@/lib/users";
+import { ensureAdminSeeded, getUserLearningTrack } from "@/lib/users";
+import { TrackSelectionCards } from "@/components/WorkspaceInteractive";
+import { resolveWorkspaceDay } from "@/lib/workspace-overlays";
 
 export const dynamic = "force-dynamic";
 
@@ -32,6 +35,8 @@ export default async function HomePage() {
   const session = await getSession();
   if (!session) return null;
 
+  const learningTrack = await getUserLearningTrack(session.id);
+
   const queue = await getLearnerQueue(session.id, 2);
   const todayPos = queue.today;
   const tomorrowPos = queue.tomorrow;
@@ -41,12 +46,27 @@ export default async function HomePage() {
   const todayDay = todayWeek?.days.find((d) => d.day === todayPos?.day);
   const tomorrowWeek = tomorrowPos ? loadWeek(tomorrowPos.week) : null;
   const tomorrowDay = tomorrowWeek?.days.find((d) => d.day === tomorrowPos?.day);
+
+  const workspaceOverlay =
+    learningTrack === "workspace" && todayPos && todayDay
+      ? resolveWorkspaceDay(todayPos.week, todayPos.day, {
+          deliverable: todayDay.deliverable,
+          rawMarkdown: todayDay.rawMarkdown,
+          objective: todayDay.objective,
+        })
+      : null;
+
   const checklist =
     todayPos && todayDay
-      ? extractDayChecklist(todayDay.rawMarkdown, {
-          objective: todayDay.objective,
-          deliverable: todayDay.deliverable,
-        })
+      ? learningTrack === "workspace" && workspaceOverlay
+        ? workspaceOverlay.labSteps.map((label, index) => ({
+            key: `ws-${index}`,
+            label,
+          }))
+        : extractDayChecklist(todayDay.rawMarkdown, {
+            objective: todayDay.objective,
+            deliverable: todayDay.deliverable,
+          })
       : [];
   const checklistStates =
     todayPos && checklist.length
@@ -69,15 +89,31 @@ export default async function HomePage() {
         eyebrow={
           queue.courseComplete
             ? "Fast Track · Course complete"
-            : `Fast Track · ~${queue.config.targetWeeks} weeks · Phase ${phase.id} · Week ${padWeek(focusWeek)}`
+            : `Fast Track · ${trackLabel(learningTrack)} · ~${queue.config.targetWeeks} weeks · Phase ${phase.id} · Week ${padWeek(focusWeek)}`
         }
         title="My AI Day"
         description={
           queue.courseComplete
             ? "You’ve finished every lesson. Review gates, quizzes, or revisit any week."
-            : "Your focused learning module, next step, and AI field briefing."
+            : learningTrack === "workspace"
+              ? "Build today’s lab in My Workspace, then stay current with AI news."
+              : "Your focused learning module, next step, and AI field briefing."
         }
       />
+
+      {!learningTrack ? (
+        <div className="card mb-6">
+          <p className="text-xs font-semibold uppercase tracking-wide text-primary">Choose your Fast Track</p>
+          <h2 className="mt-2 text-xl text-heading">How do you want to build?</h2>
+          <p className="mt-2 text-sm text-text-muted">
+            Same skills and AI Expert finish line — pick Dev Path (your own tools) or Workspace Path (everything in
+            the app).
+          </p>
+          <div className="mt-4">
+            <TrackSelectionCards current={learningTrack} />
+          </div>
+        </div>
+      ) : null}
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start">
         <div className="min-w-0 space-y-6">
@@ -218,19 +254,31 @@ export default async function HomePage() {
                     {todayDay.objective}
                   </p>
                 ) : null}
-                {todayDay.deliverable ? (
+                {todayDay.deliverable || workspaceOverlay?.deliverable ? (
                   <p className="mt-2">
                     <span className="font-semibold text-heading">Deliverable: </span>
-                    {todayDay.deliverable}
+                    {workspaceOverlay?.deliverable ?? todayDay.deliverable}
                   </p>
                 ) : null}
-                <div className="mt-6">
+                <div className="mt-6 flex flex-wrap gap-3">
                   <Link
                     href={`/weeks/${todayPos.week}/days/${todayDay.day}`}
                     className="btn-primary inline-block"
                   >
                     Open today’s lesson
                   </Link>
+                  {learningTrack === "workspace" ? (
+                    <Link
+                      href={
+                        workspaceOverlay?.files[0]
+                          ? `/workspace?path=${encodeURIComponent(workspaceOverlay.files[0])}`
+                          : "/workspace"
+                      }
+                      className="btn-secondary inline-block"
+                    >
+                      Open My Workspace
+                    </Link>
+                  ) : null}
                 </div>
                 {checklist.length ? (
                   <div className="mt-6 border-t border-border pt-6">

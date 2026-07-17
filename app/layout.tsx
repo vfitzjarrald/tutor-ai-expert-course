@@ -4,6 +4,7 @@ import { AchievementCelebration } from "@/components/AchievementCelebration";
 import { SiteFooter, SiteHeader } from "@/components/SiteChrome";
 import { getPendingCelebrations, syncUserAchievements } from "@/lib/achievements";
 import { getSession } from "@/lib/auth";
+import { getUserLearningTrack } from "@/lib/users";
 
 export const metadata: Metadata = {
   title: "AI Expert",
@@ -13,6 +14,7 @@ export const metadata: Metadata = {
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   let user = null;
   let pending: Array<{ achievementId: string }> = [];
+  let learningTrack = null as Awaited<ReturnType<typeof getUserLearningTrack>>;
   try {
     user = await getSession();
     if (user) {
@@ -20,16 +22,18 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       pending = (await getPendingCelebrations(user.id)).map((row) => ({
         achievementId: row.achievementId,
       }));
+      learningTrack = await getUserLearningTrack(user.id);
     }
   } catch {
     user = null;
     pending = [];
+    learningTrack = null;
   }
 
   return (
     <html lang="en">
       <body className={`flex min-h-screen flex-col ${user ? "has-chrome" : ""}`}>
-        {user ? <SiteHeader user={user} /> : null}
+        {user ? <SiteHeader user={user} learningTrack={learningTrack} /> : null}
         <main className={`flex-1 ${user ? "container-app py-8" : ""}`}>{children}</main>
         {user ? <SiteFooter /> : null}
         {user ? <AchievementCelebration pending={pending} /> : null}

@@ -2,11 +2,13 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { ResetMyProgressForm } from "@/components/CourseInteractive";
 import { PageHero } from "@/components/SiteChrome";
+import { TrackSelectionCards } from "@/components/WorkspaceInteractive";
 import { getSession } from "@/lib/auth";
 import { getLatestQuizScores, getGateStates } from "@/lib/learning";
+import { trackLabel } from "@/lib/learning-track";
 import { getLearnerQueue } from "@/lib/progress";
 import { padWeek, resolveStartDate } from "@/lib/schedule";
-import { getUserCourseStartDate } from "@/lib/users";
+import { getUserCourseStartDate, getUserLearningTrack } from "@/lib/users";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +26,7 @@ export default async function AccountPage() {
   const quizzes = await getLatestQuizScores(session.id);
   const gates = await getGateStates(session.id);
   const gateDone = [...gates.values()].filter(Boolean).length;
+  const learningTrack = await getUserLearningTrack(session.id);
 
   return (
     <div>
@@ -32,6 +35,23 @@ export default async function AccountPage() {
         title={session.displayName || session.username}
         description={`Recognized Expert Fast Track · about ${queue.config.targetWeeks} weeks. Progression follows completed lessons and phase diagnostics, not the calendar.`}
       />
+
+      <div className="card mb-8">
+        <p className="text-xs font-semibold uppercase tracking-wide text-text-muted">Learning path</p>
+        <p className="mt-2 text-lg text-heading">{trackLabel(learningTrack)}</p>
+        <p className="mt-2 text-sm text-text-muted">
+          Choose how you build Fast Track deliverables. Completion, diagnostics, and achievements are shared.
+          Workspace files stay saved if you switch paths.
+        </p>
+        <div className="mt-4">
+          <TrackSelectionCards current={learningTrack} compact />
+        </div>
+        {learningTrack === "workspace" ? (
+          <Link href="/workspace" className="nav-link mt-4 inline-block text-sm">
+            Open My Workspace
+          </Link>
+        ) : null}
+      </div>
 
       <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="card">
@@ -104,8 +124,9 @@ export default async function AccountPage() {
         <p className="mt-2 text-sm">
           Clears day completion checkmarks, quiz attempts, and phase gate checklists so{" "}
           <strong className="text-heading">My AI Day</strong> returns to the first Fast Track lesson.
-          Diagnostic baselines and waivers are cleared, gates stay mandatory, and the calendar projection resets to today.
-          Earned achievements and certificates are permanent and are not cleared.
+          Diagnostic baselines and waivers are cleared, gates stay mandatory, and the calendar projection resets to
+          today. Earned achievements and certificates are permanent and are not cleared. Your learning path and
+          workspace files are kept.
         </p>
         <p className="mt-2 text-sm font-semibold text-heading">Your day notes are kept.</p>
         <div className="mt-6">
